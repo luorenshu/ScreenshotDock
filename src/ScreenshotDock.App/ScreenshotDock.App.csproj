@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>../../assets/app.ico</ApplicationIcon>
+    <AssemblyName>ScreenshotDock</AssemblyName>
+    <Version>1.0.0</Version>
+    <Description>截图即收纳，随取随用。</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../ScreenshotDock.Core/ScreenshotDock.Core.csproj" />
+    <ProjectReference Include="../ScreenshotDock.Windows/ScreenshotDock.Windows.csproj" />
+    <PackageReference Include="Serilog" Version="4.3.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <EmbeddedResource Include="../../assets/app.ico" LogicalName="ScreenshotDock.AppIcon.ico" />
+    <EmbeddedResource Include="../../assets/cursors/*.cur" LogicalName="ScreenshotDock.Cursors.%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

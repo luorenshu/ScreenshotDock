@@ -1,0 +1,19 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">ScreenshotDock</title>
+  <desc id="desc">蓝色框选角环抱一张由浅蓝色夹子挂起的图片卡片，代表截图即收纳。</desc>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4B8DFF"/><stop offset="1" stop-color="#1648C4"/></linearGradient>
+    <linearGradient id="clip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#96D6FF"/><stop offset="1" stop-color="#3DB2FF"/></linearGradient>
+    <clipPath id="photo"><rect x="87" y="107" width="88" height="63" rx="5"/></clipPath>
+  </defs>
+  <rect x="10" y="10" width="236" height="236" rx="58" fill="url(#tile)"/>
+  <path d="M58 97V60H95M198 164V201H161" fill="none" stroke="#F8FBFF" stroke-opacity=".72" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="99" y="102" width="84" height="91" rx="11" fill="#F8FBFF" fill-opacity=".22" transform="rotate(11 141 147.5)"/>
+  <g transform="rotate(-7 131 145.5)">
+    <rect x="77" y="96" width="108" height="99" rx="12" fill="#F8FBFF"/>
+    <rect x="87" y="107" width="88" height="63" rx="5" fill="#DDEBFF"/>
+    <g clip-path="url(#photo)"><circle cx="152" cy="121" r="7" fill="#3DB2FF"/><path d="M87 150L111 127L136 150L150 136L175 161V170H87Z" fill="#2563EB"/></g>
+  </g>
+  <rect x="123" y="73" width="16" height="41" rx="8" fill="url(#clip)"/>
+  <path d="M128 80V99" fill="none" stroke="#E5F5FF" stroke-width="2" stroke-linecap="round"/>
+</svg>

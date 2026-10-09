@@ -1,0 +1,50 @@
+﻿<Window x:Class="ScreenshotDock.App.Views.SettingsWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="ScreenshotDock · 设置" Width="680" SizeToContent="Height" ResizeMode="NoResize"
+ WindowStartupLocation="CenterScreen" Background="{StaticResource PageBackground}" Foreground="{StaticResource Ink}">
+ <Grid Margin="28,22,28,20">
+  <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+  <StackPanel Margin="0,0,0,18"><TextBlock Text="按你的习惯截图" FontSize="25" FontWeight="SemiBold" /><TextBlock Text="ScreenshotDock  1.0   /   Capture. Keep. Drag. Share." Foreground="{StaticResource Muted}" Margin="0,7,0,0" FontSize="12" /></StackPanel>
+   <StackPanel Grid.Row="1">
+    <TextBlock Text="截图快捷键" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,9" />
+    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+     <TextBox x:Name="HotkeyBox" IsReadOnly="True" PreviewKeyDown="HotkeyKeyDown" ToolTip="点击后按下单个按键或组合键，例如 F1、F2 或 Ctrl + Shift + A" />
+     <Button Grid.Column="1" Content="恢复默认" Margin="10,0,0,0" Click="ResetHotkeyClick" />
+    </Grid>
+    <TextBlock Text="点击后按 F1、F2 等单键，或 Ctrl + Shift + A 等组合键。" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,7,0,4" TextWrapping="Wrap" />
+    <Separator />
+    <Grid>
+     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+     <StackPanel>
+    <TextBlock Text="暂存与清理" FontSize="15" FontWeight="SemiBold" Margin="0,2,0,10" />
+    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="20" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+     <StackPanel><TextBlock Text="最多保留（张）" Foreground="{StaticResource Muted}" Margin="0,0,0,6" /><TextBox x:Name="MaxItemsBox" /></StackPanel>
+     <StackPanel Grid.Column="2"><TextBlock Text="保留时间（天）" Foreground="{StaticResource Muted}" Margin="0,0,0,6" /><TextBox x:Name="RetentionBox" /></StackPanel>
+    </Grid>
+    <CheckBox x:Name="CleanupBox" Margin="0,14,0,6"><TextBlock Text="自动清理过期或超出数量的暂存图片" TextWrapping="Wrap" /></CheckBox>
+    <TextBlock Text="默认 100 张 / 7 天。调整后立即应用，只清理暂存图片。" TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="11" />
+     </StackPanel>
+     <StackPanel Grid.Column="2">
+    <TextBlock Text="桌面行为" FontSize="15" FontWeight="SemiBold" Margin="0,2,0,3" />
+    <CheckBox x:Name="StartupBox" Content="开机启动" Checked="StartupChanged" Unchecked="StartupChanged" />
+    <CheckBox x:Name="CopyBox" Content="截图后自动复制到剪贴板" />
+    <CheckBox x:Name="ExpandBox" Content="截图完成后短暂展开截图栏" />
+    <CheckBox x:Name="FullscreenBox"><TextBlock Text="全屏应用运行时暂停顶部悬停触发和自动展开" TextWrapping="Wrap" /></CheckBox>
+     </StackPanel>
+    </Grid>
+    <Separator />
+    <Border Background="{StaticResource Soft}" CornerRadius="10" Padding="16,13" Margin="0,2,0,0">
+     <StackPanel><TextBlock Text="本地存储 · 无需账号" FontWeight="SemiBold" />
+      <TextBlock Text="仅收纳本工具截取的图片。图片与配置保存在这台电脑，不监听其他应用复制的内容。" TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,6,0,0" />
+      <TextBlock x:Name="StoragePathLabel" TextWrapping="Wrap" FontSize="10" Foreground="{StaticResource Muted}" Margin="0,9,0,0" />
+     </StackPanel>
+    </Border>
+   </StackPanel>
+  <Grid Grid.Row="2" Margin="0,18,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+   <TextBlock x:Name="ErrorLabel" Text="" Foreground="#B64A36" TextWrapping="Wrap" Margin="0,0,0,10">
+    <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding Text, RelativeSource={RelativeSource Self}}" Value=""><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+   </TextBlock>
+   <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="取消" Click="CancelClick" Margin="0,0,8,0" /><Button x:Name="SaveButton" Content="保存设置" Style="{StaticResource PrimaryButton}" Click="SaveClick" Padding="18,10" /></StackPanel>
+  </Grid>
+ </Grid>
+</Window>

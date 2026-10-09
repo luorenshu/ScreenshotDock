@@ -1,0 +1,12 @@
+﻿<Window x:Class="ScreenshotDock.App.Views.PreviewWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="ScreenshotDock · 预览" Width="900" Height="650" MinWidth="430" MinHeight="300" Background="#EFF4FC" Foreground="{StaticResource Ink}" WindowStartupLocation="CenterScreen" KeyDown="WindowKeyDown">
+ <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+  <Border Background="#F8FBFF" Padding="20,13" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
+   <Grid><StackPanel><TextBlock x:Name="DimensionsLabel" FontSize="16" FontWeight="SemiBold" /><TextBlock x:Name="InfoLabel" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,3,0,0" /></StackPanel>
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"><Button x:Name="CopyButton" Content="复制图片" Click="CopyClick" Margin="0,0,8,0" /><Button Content="另存为…" Style="{StaticResource PrimaryButton}" Click="SaveClick" /></StackPanel>
+   </Grid>
+  </Border>
+  <Border Grid.Row="1" Margin="22"><Image x:Name="PreviewImage" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" /></Border>
+ </Grid>
+</Window>
