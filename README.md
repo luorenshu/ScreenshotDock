@@ -1,85 +1,146 @@
-# ScreenshotDock
+<p align="center">
+  <img src="assets/logo.png" alt="ScreenshotDock Logo" width="96">
+</p>
 
-Windows 原生截图与临时素材收纳工具。C# / .NET 10 / WPF。按照提供的产品 PRD v1.0 实现 V1.0 MVP。
+<h1 align="center">ScreenshotDock</h1>
 
-**F1 → 自动识别并单击选区 / 拖动框选 → 工具栏标注 → 完成 / 复制 / 保存 → 顶部收纳。F3 将当前选区或最近截图贴到屏幕。**
+<p align="center">截图即收纳，随取随用。</p>
 
-## 运行
+<p align="center">
+  Windows 桌面工具 · C# / .NET 10 / WPF · <a href="LICENSE">MIT License</a>
+</p>
 
-已发布程序：`artifacts/ScreenshotDock-win-x64/ScreenshotDock.exe`。
+ScreenshotDock 将截图、标注、桌面贴图和临时图片收纳放在一起。按 **F1** 开始截图，编辑后自动放入屏幕顶部的晾衣绳暂存栏；按 **F3** 将当前截图或最近一张图片贴到屏幕，方便对照、记录和分享。
 
-开发运行（PowerShell）：
+![顶部晾衣绳暂存栏](docs/images/dock.png)
+
+## 功能
+
+- **截图与自动选区**：悬停识别窗口和控件，单击确认，也可以自由拖动框选。
+- **标注编辑**：矩形、圆形、画笔、五种箭头样式、框选马赛克、中文及多行文字，支持撤销和重做。形状与马赛克可移动、缩放；文字输入背景透明，可拖动边框移动并再次编辑。
+- **多张桌面贴图**：置顶显示多张图片，拖动内部移动，拖动边缘等比例缩放；选中贴图显示蓝色阴影，按 Esc 移除当前贴图。
+- **顶部暂存栏**：从屏幕顶部中间触发，展开后覆盖主屏宽度。挂绳与卡片带展开、收回动画，移出热区自动隐藏；滚轮浏览、单击复制、拖拽分享。
+- **本地管理**：PNG 保存、截图去重、数量与保留期限设置、重启恢复、清空二次确认、全屏避让、系统托盘和开机启动。
+- **自定义快捷键**：截图和贴图分别设置，支持单键与组合键。
+
+![截图标注与透明文字输入](docs/images/editor.png)
+
+## 快速使用
+
+1. 启动后按 **F1**，单击自动识别的区域或拖动框选。
+2. 使用选区右下方的工具栏标注，选择完成、复制、保存或贴图。
+3. 将鼠标移到主屏顶部中间，展开暂存栏；单击图片复制，拖出图片分享。
+4. 按 **F3** 将当前选区或最近截图贴到桌面。在设置中可修改快捷键和保留策略。
+
+| 快捷键 | 操作 |
+| --- | --- |
+| F1 | 开始截图，默认全局快捷键 |
+| F3 | 贴图，默认全局快捷键 |
+| Esc / 鼠标右键 | 取消截图；编辑或拖动中 Esc 优先取消当前操作 |
+| Enter / Shift + Enter | 确认文字 / 文字换行 |
+| Ctrl + Z / Ctrl + Y | 撤销 / 重做；文字输入时使用文本框的编辑历史 |
+| Ctrl + S | 保存当前截图 |
+| Ctrl + C | 复制当前截图；文字输入时复制选中的文字 |
+
+完整操作见 [使用说明](docs/使用说明.md)。
+
+## 从源码运行
+
+目标平台为 **Windows 10 / 11 x64**，使用 Git 与 PowerShell。当前仓库提供源码，可在 Windows 上运行和生成自包含程序。
 
 ```powershell
+git clone https://github.com/luorenshu/ScreenshotDock.git
+cd ScreenshotDock
 powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1
 ```
 
-脚本优先使用项目内 `.tools/dotnet`，或系统 .NET 10 SDK；缺少时下载官方 10.0.401 SDK 至项目 `.tools`，不改系统 PATH。首次还原与自包含发布需要网络，应用运行离线。
+SDK 版本由 [global.json](global.json) 指定。脚本优先使用项目内的 `.tools/dotnet`，其次使用系统安装的 .NET 10 SDK；没有可用的 .NET 10 SDK 时，下载官方 10.0.401 SDK 到项目的 `.tools`，不修改系统 PATH。使用系统 SDK 时，其版本需满足 `global.json`。
 
-## 构建、验证与发布
+首次获取 SDK、还原依赖和自包含发布需要网络。应用正常运行使用本地存储。
+
+## 构建与发布
 
 ```powershell
+# 构建解决方案
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
-powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1
-powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Editor
-powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Pin
-powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Edge
-powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Settings
-powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Annotations
-powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -SmartSelection
-powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Shortcuts
-powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Integration
+
+# 生成 Windows x64 自包含程序和 ZIP
 powershell -ExecutionPolicy Bypass -File .\scripts\publish.ps1
 ```
 
-集成测试需要交互式 Windows 桌面，会短暂打开本工具测试窗口，验证实际 GDI 采集、快捷键、剪贴板、OLE 文件拖放和热区原生滚轮控制；将测试图片写到剪贴板，并将视觉证据及结果放入 `artifacts/verification`。集成测试使用独立缓存，不使用真实用户截图库。
+发布输出：
 
-`-Editor` 单独验证截图编辑器：实际工具栏按钮、标注合成、五种箭头样式与折线路径、中文文字、撤销重做、屏幕边缘布局、保存失败恢复，以及真实 GDI 截图到缓存、文件和剪贴板的完整流程。使用合成画布和专用测试窗口，不移动桌面鼠标，结果位于 `artifacts/editor-verification`。保存路径选择器在测试中注入，系统保存对话框仍需手动验收。
+```text
+artifacts/
+├── ScreenshotDock-win-x64/
+│   ├── ScreenshotDock.exe
+│   ├── LICENSE
+│   ├── THIRD_PARTY_NOTICES.md
+│   ├── licenses/
+│   └── 使用说明.md
+└── ScreenshotDock-1.0.0-win-x64.zip
+```
 
-发布生成 x64 自包含 EXE 与 ZIP，图标内嵌，无外部资源文件依赖。后续重新发布前通过托盘退出旧进程。
+自包含程序无需预装 .NET，可将整个发布目录或解压后的 ZIP 交付给使用者。发布脚本附带项目许可证和所用运行时的第三方许可文件。重新发布前，请先从系统托盘退出正在运行的旧程序。
 
-界面统一采用蓝色主题，按钮、挂绳卡片和设置选中态保持一致。截图选区采用鲜蓝色（#176BFF）3 DIP 边框，角点同步加大；界面装饰不进入导出图片。Logo 采用蓝色渐变圆角底、框选角、倾斜图片卡片和浅蓝色夹子，表达“截图即收纳”。矢量源文件为 `assets/logo.svg`，透明 1024 px PNG 为 `assets/logo.png`，浅色与深色背景预览为 `assets/logo-preview.png`。`assets/app.ico` 包含 16、20、24、32、40、48、64、128、256 px 九档图像，供程序与托盘使用；`scripts/create-icon.ps1` 生成 PNG/ICO，`scripts/preview-logo.ps1` 检查每档原生加载、尺寸和透明边角并生成预览。ICO 内采用带透明度的 PNG 帧；原生加载方式参见 [Microsoft 图标资源说明](https://devblogs.microsoft.com/oldnewthing/20231025-00/?p=108925)。
+## 测试
 
-## 结构
+```powershell
+# 单元测试
+powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1
 
-- `src/ScreenshotDock.Core`：数据模型、标注历史、原子 JSON、截图去重、恢复和保留策略。
-- `src/ScreenshotDock.Windows`：Win32 GDI、物理像素与显示器、全局快捷键、剪贴板和托盘。
-- `src/ScreenshotDock.App`：截图选区与标注工具栏、图片合成、顶部栏、设置与预览，以及应用生命周期。
-- `tests`：存储回归测试和 Windows 集成测试。
-- `docs`：[使用说明](docs/使用说明.md)、验收与限制。
+# 单元测试及截图标注、马赛克、文字编辑、保存和贴图流程
+powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Annotations
+```
 
-截图与贴图默认全局快捷键分别为 F1、F3，可分别录入单键或组合键。`ScreenshotHotkeyService` 在两个新组合和设置持久化都成功后提交替换，失败时只释放新注册；交换两个现有快捷键时复用原生注册 ID，避免互相占用。两个动作不能使用相同组合。打开设置期间释放两键供录入，关闭后恢复；托盘暂停同时作用于两键。旧默认 Ctrl + Shift + A 自动升级为 F1，已自定义的其他组合保留；新版本明确保存的 Ctrl + Shift + A 也会保留。`-Shortcuts` 验证实际 F1/F3、组合键、互换、冲突、写入失败与截图及贴图完整流程，结果位于 `artifacts/shortcut-verification`。
+可按需增加以下测试开关：
 
-截图编辑中按贴图快捷键会确认待输入文字、合成标注并贴在选区原位置；截图结束后按键则从暂存库加载最近截图，可同时贴多张。本次截图保留原位置；重启后恢复的最近图片居中显示在鼠标所在屏幕，并按需缩小到可见范围。没有截图时提示先截图。截图前隐藏自身窗口并等待 DWM 完成更新；每个显示器独立呈现选区，但选区和最终裁剪始终使用虚拟桌面的物理像素。暂存原图与缩略图通过 GUID 定位，JSON 不控制删除路径。
+| 开关 | 验证范围 |
+| --- | --- |
+| `-Pin` | 多张贴图、选择、移动、边缘缩放和 Esc |
+| `-Edge` | 顶部触发、自动隐藏和截图生命周期 |
+| `-Settings` | 设置、开机启动和清空确认 |
+| `-SmartSelection` | 窗口与控件自动选区 |
+| `-Shortcuts` | 全局快捷键、冲突、互换和持久化 |
+| `-Editor` | 编辑器及系统剪贴板流程 |
+| `-Integration` | 完整桌面集成流程，包括剪贴板与文件拖放 |
 
-开始截图时，`CaptureRegionDetector` 在浮层显示前保存可见窗口的顺序、物理范围与原生子控件范围；鼠标悬停先呈现窗口或子控件预选，再通过后台 UI Automation 细化按钮、输入框等区域。直接从原窗口句柄遍历控件，避免识别到覆盖其上的截图浮层。后台查询按短暂停留防抖，限制遍历深度、节点数及等待时间；进程内只允许一个查询在运行，慢提供程序不会阻塞框选。UI Automation 独立线程要求参见 [Microsoft 线程说明](https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-threading)。没有可用控件信息时保留窗口级选区。
+桌面集成测试需要交互式 Windows 会话，会短暂显示专用测试窗口，并使用独立缓存。`-Editor` 和 `-Integration` 会访问系统剪贴板，请在测试前保存需要保留的剪贴板内容。结果和示例图输出到 `artifacts/`。
 
-所有显示器共享 `SmartSelectionSession`：悬停只预览，不提交选区或显示工具栏；鼠标按下时冻结预选区域，单击松开后确认，超过按屏幕缩放换算的拖动阈值则切换为自由框选。迟到或过期的后台结果不能覆盖当前预选或已经确认的选区；窗口关闭后取消更新。区域裁剪始终使用虚拟桌面物理坐标，支持负坐标与跨屏选区。`-SmartSelection` 使用专用 WPF 窗口与合成画布验证原生识别、确认、自由框选、迟到响应和实际工具栏，结果位于 `artifacts/smart-selection-verification`，不移动真实鼠标或访问系统剪贴板。
+已执行验证与待补测项目见 [验收记录](docs/验收记录.md)。
 
-选区右下方提供矩形、椭圆、箭头、画笔、框选马赛克、文字、移除标注、撤销、重做、保存、复制和完成按钮，靠近屏幕边缘时自动调整位置。矩形与椭圆画好后自动选中，支持在对应工具或选择工具下再次点击内部移动、拖动控制点调整大小；矩形保留四角与四边中点共八个控制点，椭圆仅保留上下左右四个，两种形状均不叠加白色虚线框。与马赛克共用区域预览、固定边、选区限制和一次撤销事务，颜色、线宽与图层顺序保持原样。形状内部可移动，移除工具仍只命中可见轮廓，椭圆外接矩形的空白角落不触发移动或缩放。保存、复制、贴图及完成先确认当前调整；控制点仅用于编辑。所有显示器共用 `CaptureEditSession` 和 `AnnotationDocument`，标注坐标相对于选区，移动选区时保持位置，调整尺寸时裁剪超出的标注。`AnnotationRenderer` 将原始截图与标注合成到物理像素尺寸的图片，选区边框、工具栏和遮罩不进入导出结果。保存使用同目录临时文件后替换目标，失败或取消时继续编辑；暂存目录受到保护。
+## 项目结构
 
-马赛克工具使用蓝色四格图标，填充和外框绑定工具按钮的前景色，与其他工具一致，空白格透出按钮背景。标注保留相对矩形和物理颗粒大小，支持框选、移动、调整大小、移除及撤销重做；活动区域由 `SelectionCanvas` 绘制细短白色虚线和 8 个带白色轮廓的小方形控制点，不进入导出结果。在马赛克或选择工具下拖动已有区域时，`CaptureEditSession` 保存移动预览，限制区域到选区边缘，保持尺寸和颗粒大小；绘制预览替换原图层，松开时通过 `ReplaceAt` 一次提交历史，Esc 或失去鼠标捕获时恢复原位置。控制点通过 `RegionSelectionGeometry` 共用物理坐标与命中测试，四角调整两条边，边中点只调整对应边；缩放使用同一预览与历史事务，限制范围并保留颗粒大小和原始端点方向。截图选区改变或文档修改会清除过期的拖动状态。`MosaicRenderer` 将原始选区按块求平均，缓存小尺寸网格，以弱引用关联源图；绘制使用显式最近邻采样的 `DrawingGroup`，并裁切到矩形内，预览与导出共用逻辑。位图生成和缩放机制参见 [Microsoft BitmapSource.Create](https://learn.microsoft.com/en-us/dotnet/api/system.windows.media.imaging.bitmapsource.create?view=windowsdesktop-10.0)、[BitmapScalingMode](https://learn.microsoft.com/en-us/dotnet/api/system.windows.media.bitmapscalingmode?view=windowsdesktop-10.0)。
+| 目录 | 内容 |
+| --- | --- |
+| `src/ScreenshotDock.Core` | 数据模型、标注历史、配置、截图存储和清理 |
+| `src/ScreenshotDock.Windows` | Win32 截图、显示器、快捷键、剪贴板、托盘和开机启动 |
+| `src/ScreenshotDock.App` | WPF 截图编辑器、顶部暂存栏、贴图、设置和应用生命周期 |
+| `tests/` | 单元测试与 Windows 桌面集成测试 |
+| `assets/` | Logo、应用图标和光标资源 |
+| `scripts/` | SDK 获取、运行、构建、测试、发布和资源生成 |
+| `docs/` | 使用说明、验证记录和界面示例 |
 
-文字输入框背景透明，根据内容和字号动态调整宽度，并在选区边缘换行。输入框四边提供透明拖动区域与移动光标，框内照常输入及选择文字；拖动时保留内容、字号、换行宽度，整个输入框限制在当前显示器的截图区域内。在文字或调整选区工具下点击已有文字会打开原标注进行修改及移动；编辑期间隐藏原图层的文字，确认时用 `AnnotationDocument.ReplaceAt` 替换同一图层并保存新位置，纯移动保留原样式和宽度，整次确认只产生一次撤销事务。拖动中按 Esc 只取消当前移动，其他时候 Esc 恢复原内容和位置。删除全部文字可移除标注，无变化的确认不会增加撤销步骤。保存、复制、贴图及完成先确认待输入内容与位置。`-Annotations` 验证马赛克像素和裁切、文字透明像素、四边拖动与边界、动态布局与重复编辑、PNG 保存及完整保存/贴图流程；测试使用独立缓存和专用图像，文字移动证据位于 `artifacts/text-move-verification`。复制检查验证工具栏确认文字后发出合成请求，该组不访问系统剪贴板。
+SDK 缓存、构建产物、测试输出和本机配置由 [.gitignore](.gitignore) 排除；用于编译的图标、光标和文档示例图随源码提交。
 
-箭头工具提供细线、实心、渐尖、空心和折线五种样式。空心样式使用渐尖轮廓，尾部细、靠近箭头逐渐变宽，内部保持透明。每个 `ScreenshotAnnotation` 保留独立的 `ArrowStyle` 和折线路径，`ArrowGeometry` 共用于界面绘制、导出和移除命中检测，实心箭头可点击内部移除，空心箭头按外轮廓命中。折线路径保留转折，去除细小鼠标抖动；工具切换不会修改已绘制的箭头。
+## 数据与适用范围
 
-截图工具栏的图钉按钮将带标注的图片贴到屏幕，并保留在暂存栏。`PinnedImageWindow` 为独立的置顶窗口，支持同时显示多张、拖动内部摆放、拖动四边和四角等比例缩放；边缘固定对侧边并保持另一方向的中心，四角固定对角，最短边限制为 32 DIP。命中范围、最小尺寸与外侧阴影留白按当前 DPI 换算为物理像素，整次拖动基于初始范围计算，避免累积取整误差；鼠标捕获保证移出原窗口后仍可拖动，松开、失去捕获或关闭时结束。缩放只改变显示范围，源位图和暂存文件保持原始分辨率。未选中时外侧显示淡白色阴影，点击激活后变为蓝色阴影，Esc 仅关闭收到键盘输入的贴图，不删除暂存图片。再次截图前隐藏已有贴图，结束或取消后恢复；退出时关闭所有贴图。`scripts/test.ps1 -Pin` 验证八个缩放方向与光标、固定边和比例、最小尺寸、移动与捕获释放、多个窗口的选择及 Esc 移除，并回归渐尖空心箭头像素和完整贴图流程，证据位于 `artifacts/pin-verification`。
+截图、缩略图、配置和日志默认存放在：
 
-截图光标使用嵌入的双层 CUR 资源，深色外沿配白色内芯，覆盖十字、移动、四种缩放方向及文字模式。`scripts/create-cursors.ps1` 可重新生成资源；通过 [WPF Cursor(Stream, Boolean)](https://learn.microsoft.com/en-us/dotnet/api/system.windows.input.cursor.-ctor?view=windowsdesktop-10.0#system-windows-input-cursor-ctor(system-io-stream-system-boolean)) 加载并启用 DPI 缩放，发布程序无需旁置光标文件。
+```text
+%LOCALAPPDATA%\ScreenshotDock\
+```
 
-系统托盘直接使用 `Shell_NotifyIconW` 和原生弹出菜单，程序本身不依赖 WinForms。集成测试中的外部接收器使用 WinForms，以验证跨 UI 框架的 OLE 文件拖放和独立进程的滚轮接收。
+暂存库用于临时收纳，默认最多 100 张、保留 7 天，并按设置自动清理。需要长期保存的图片，请通过保存功能导出到其他目录。
 
-透明截图栏使用 `WH_MOUSE_LL` 监听展开热区中的滚轮，隐藏后释放监听。原生回调只判断物理范围并投递输入，滚动和布局由 WPF Dispatcher 执行；不拦截点击，拖放、菜单和其他工具窗口保留自身输入。卡片隐藏滚动条但保留横向滚动范围。
+当前实际验证环境为 Windows 10 x64。Windows 11、混合 DPI、多屏热插拔、中文输入法及不同应用的拖放行为仍需在对应设备验证。受保护的画面可能无法采集。当前版本未包含 OCR、长截图、历史搜索和云同步。
 
-顶部渐变阴影由单独的 `WS_EX_TRANSPARENT` 分层窗口绘制，放在截图卡片下方；较深的宽椭圆径向渐变形成两侧略高、中间下沉的柔和弧形底边，整层允许点击穿透。显示、隐藏、关闭与截图栏同步，淡入淡出沿用当前动画透明度，截图和全屏避让时一起隐藏。原生分层窗口的透明输入规则参见 [Microsoft 文档](https://learn.microsoft.com/en-us/windows/win32/winmsg/window-features#layered-windows)。
+## 参与贡献
 
-## 参考
+欢迎通过 [Issues](https://github.com/luorenshu/ScreenshotDock/issues) 反馈问题或提出功能建议，也欢迎提交 Pull Request。
 
-使用的系统行为参见 Microsoft 文档：[RegisterHotKey](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey)、[Per-monitor DPI](https://learn.microsoft.com/en-us/windows/win32/hidpi/high-dpi-desktop-application-development-on-windows)、[BitBlt](https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-bitblt)、[WPF Drag and Drop](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/drag-and-drop-overview)。
+反馈问题时请提供 Windows 版本、显示器分辨率与缩放、复现步骤；附图和日志请先移除私人信息。贡献代码前请完成构建与相关测试，涉及界面交互的改动请附上演示图或验证结果。
 
-收起时顶部没有可见触发块。`EdgeWindow` 是主屏顶部居中、宽度约为屏幕三分之一、4 DIP 高的透明点击穿透窗口；仅可见时轮询物理鼠标坐标，在这段区域停留约 180 ms 后请求展开，离开或按住鼠标按钮时重置。顶部两侧不触发展开，方便操作浏览器标签和窗口按钮；展开后的截图栏仍覆盖完整屏幕宽度。展开、截图和全屏避让时暂停，重新显示时恢复；关闭时停止定时器。透明窗口不依赖鼠标进入事件，不拦截浏览器顶部点击或拖动。
+## 许可证
 
-展开后的截屏、锁定、设置位于右上方，清空暂存位于右下方；提示文字居中显示在挂绳上方。右上角收起按钮已移除，解锁后移出热区自动收起。清空暂存使用带数量的模态确认窗口，取消、关闭或 Esc 均保留图片；弹窗期间暂停自动收起并阻止截图快捷键进入采集。
-
-设置页采用自适应高度的双列布局，移除滚动容器和左下角常驻提示。开机启动开关立即写入或删除当前用户的 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` 中本应用的值，不随取消其他设置而回退；引用带空格的 EXE 路径并附带 `--startup`，登录启动时不展示首次截图栏，也不会因重复启动弹提示。运行机制参见 [Microsoft Run / RunOnce 文档](https://learn.microsoft.com/en-us/windows/win32/setupapi/run-and-runonce-registry-keys)。`-Settings` 在独立测试注册表键验证持久化、移除、失败恢复和应用设置页，并以独立缓存验证清空确认；不会修改真实开机启动项或用户截图库，证据位于 `artifacts/settings-verification`。
+项目采用 [MIT License](LICENSE)。第三方组件保留各自许可证，详见 [第三方声明](THIRD_PARTY_NOTICES.md)。

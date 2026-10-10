@@ -1,7 +1,51 @@
-.tools/
+# Downloaded SDK and local tooling
+/.tools/
+
+# Build, publish and test output
 **/bin/
 **/obj/
-artifacts/
-.vs/
+/artifacts/
+**/TestResults/
+/coverage/
+*.trx
+*.coverage
+*.coveragexml
+
+# IDE and per-user workspace state
+**/.vs/
+**/.idea/
 *.user
-TestResults/
+*.suo
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+*.code-workspace
+
+# Logs, diagnostic dumps and temporary files
+*.log
+*.dmp
+*.dump
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+
+# Local configuration and signing secrets (keep example configuration)
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pfx
+*.p12
+*.key
+*.pem
+*.snk
+
+# Operating system metadata
+Thumbs.db
+Desktop.ini
+.DS_Store
