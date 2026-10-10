@@ -114,6 +114,7 @@ internal static partial class Program
             cache.Add(ScreenCaptureService.EncodePng(image), ScreenCaptureService.Thumbnail(image), new(), DateTimeOffset.UtcNow);
         }
         new SettingsStore(root).Save(new() { AutoCopy = false, SuppressInFullscreen = false,
+            PinHotkey = TestShortcut(0x7A),
             Hotkey = new() { Modifiers = HotkeyModifiers.Control | HotkeyModifiers.Alt | HotkeyModifiers.Shift, VirtualKey = 0x78, KeyName = "F9" } });
         var monitor = DesktopEnvironment.PrimaryMonitor;
         using var controller = new AppController(root, edgeFactory: () => new EdgeWindow(

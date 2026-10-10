@@ -1,4 +1,4 @@
-﻿param([switch]$Integration, [switch]$Editor, [switch]$Pin, [switch]$Edge, [switch]$Settings, [switch]$Annotations, [switch]$SmartSelection)
+﻿param([switch]$Integration, [switch]$Editor, [switch]$Pin, [switch]$Edge, [switch]$Settings, [switch]$Annotations, [switch]$SmartSelection, [switch]$Shortcuts)
 . "$PSScriptRoot\sdk.ps1"
 Push-Location $projectRoot
 try {
@@ -9,5 +9,6 @@ try {
     if ($Settings) { Invoke-ProjectDotnet run --project tests/ScreenshotDock.IntegrationTests -c Release -- --settings-tests (Join-Path $projectRoot 'artifacts\settings-verification') }
     if ($Annotations) { Invoke-ProjectDotnet run --project tests/ScreenshotDock.IntegrationTests -c Release -- --annotation-tests (Join-Path $projectRoot 'artifacts\annotation-verification') }
     if ($SmartSelection) { Invoke-ProjectDotnet run --project tests/ScreenshotDock.IntegrationTests -c Release -- --smart-selection-tests (Join-Path $projectRoot 'artifacts\smart-selection-verification') }
+    if ($Shortcuts) { Invoke-ProjectDotnet run --project tests/ScreenshotDock.IntegrationTests -c Release -- --shortcut-tests (Join-Path $projectRoot 'artifacts\shortcut-verification') }
     if ($Integration) { Invoke-ProjectDotnet run --project tests/ScreenshotDock.IntegrationTests -c Release -- (Join-Path $projectRoot 'artifacts\verification') }
 } finally { Pop-Location }

@@ -452,6 +452,7 @@ internal static partial class Program
         var root = Path.Combine(_output, "pipeline-cache");
         var repository = new ScreenshotRepository(root); repository.Load(new(), DateTimeOffset.UtcNow); repository.Clear();
         new SettingsStore(root).Save(new() { AutoCopy = false, AutoExpand = false, SuppressInFullscreen = false,
+            PinHotkey = TestShortcut(0x7A),
             Hotkey = new() { Modifiers = HotkeyModifiers.Control | HotkeyModifiers.Alt | HotkeyModifiers.Shift, VirtualKey = 0x79, KeyName = "F10" } });
         var destination = Path.Combine(_output, "pipeline-saved.png");
         using var controller = new AppController(root, _ => destination);

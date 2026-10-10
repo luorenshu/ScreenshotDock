@@ -44,13 +44,14 @@ internal static partial class Program
         var settingsOnly = args.FirstOrDefault() == "--settings-tests";
         var annotationsOnly = args.FirstOrDefault() == "--annotation-tests";
         var smartOnly = args.FirstOrDefault() == "--smart-selection-tests";
-        _output = Path.GetFullPath((editorOnly || pinOnly || edgeOnly || settingsOnly || annotationsOnly || smartOnly ? args.ElementAtOrDefault(1) : args.FirstOrDefault()) ?? "artifacts/verification");
+        var shortcutsOnly = args.FirstOrDefault() == "--shortcut-tests";
+        _output = Path.GetFullPath((editorOnly || pinOnly || edgeOnly || settingsOnly || annotationsOnly || smartOnly || shortcutsOnly ? args.ElementAtOrDefault(1) : args.FirstOrDefault()) ?? "artifacts/verification");
         Directory.CreateDirectory(_output);
         _application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         _application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/ScreenshotDock;component/Themes/Theme.xaml") });
         _application.Dispatcher.BeginInvoke(async () =>
         {
-            try { if (smartOnly) await RunSmartSelectionTestsAsync(); else if (annotationsOnly) await RunAnnotationFeatureTestsAsync(); else if (settingsOnly) await RunSettingsTestsAsync(); else if (edgeOnly) await RunEdgeTestsAsync(); else if (pinOnly) await RunPinTestsAsync(); else if (editorOnly) await RunEditorTestsAsync(); else await RunAsync(); File.WriteAllText(Path.Combine(_output, "integration-results.json"), JsonSerializer.Serialize(Checks, AtomicJson.Options)); File.Delete(Path.Combine(_output, "failure.txt")); _application.Shutdown(0); }
+            try { if (shortcutsOnly) await RunShortcutTestsAsync(); else if (smartOnly) await RunSmartSelectionTestsAsync(); else if (annotationsOnly) await RunAnnotationFeatureTestsAsync(); else if (settingsOnly) await RunSettingsTestsAsync(); else if (edgeOnly) await RunEdgeTestsAsync(); else if (pinOnly) await RunPinTestsAsync(); else if (editorOnly) await RunEditorTestsAsync(); else await RunAsync(); File.WriteAllText(Path.Combine(_output, "integration-results.json"), JsonSerializer.Serialize(Checks, AtomicJson.Options)); File.Delete(Path.Combine(_output, "failure.txt")); _application.Shutdown(0); }
             catch (Exception e) { Console.Error.WriteLine(e); File.WriteAllText(Path.Combine(_output, "integration-results.json"), JsonSerializer.Serialize(Checks, AtomicJson.Options)); File.WriteAllText(Path.Combine(_output, "failure.txt"), e.ToString()); _application.Shutdown(1); }
         });
         return _application.Run();
@@ -333,7 +334,7 @@ internal static partial class Program
         cache.Load(new(), DateTimeOffset.UtcNow);
         cache.Clear();
         var shortcut = new HotkeySettings { Modifiers = HotkeyModifiers.Control | HotkeyModifiers.Alt | HotkeyModifiers.Shift, VirtualKey = 0x77, KeyName = "F8" };
-        new SettingsStore(root).Save(new() { Hotkey = shortcut });
+        new SettingsStore(root).Save(new() { Hotkey = shortcut, PinHotkey = TestShortcut(0x7A) });
         using var controller = new AppController(root);
         await controller.StartAsync();
         Check(_application.Windows.OfType<DockWindow>().Any() && _application.Windows.OfType<EdgeWindow>().Any(), "Application startup creates dock and edge trigger");

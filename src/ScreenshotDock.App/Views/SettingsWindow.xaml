@@ -8,9 +8,15 @@
     <TextBlock Text="截图快捷键" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,9" />
     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
      <TextBox x:Name="HotkeyBox" IsReadOnly="True" PreviewKeyDown="HotkeyKeyDown" ToolTip="点击后按下单个按键或组合键，例如 F1、F2 或 Ctrl + Shift + A" />
-     <Button Grid.Column="1" Content="恢复默认" Margin="10,0,0,0" Click="ResetHotkeyClick" />
+     <Button x:Name="ResetCaptureHotkeyButton" Grid.Column="1" Content="恢复默认" Margin="10,0,0,0" Click="ResetHotkeyClick" />
     </Grid>
     <TextBlock Text="点击后按 F1、F2 等单键，或 Ctrl + Shift + A 等组合键。" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,7,0,4" TextWrapping="Wrap" />
+    <TextBlock Text="贴图快捷键" FontSize="15" FontWeight="SemiBold" Margin="0,13,0,9" />
+    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+     <TextBox x:Name="PinHotkeyBox" IsReadOnly="True" PreviewKeyDown="HotkeyKeyDown" ToolTip="默认 F3，支持单个按键或 Ctrl、Alt、Shift、Win 组合键" />
+     <Button x:Name="ResetPinHotkeyButton" Grid.Column="1" Content="恢复默认" Margin="10,0,0,0" Click="ResetPinHotkeyClick" />
+    </Grid>
+    <TextBlock Text="默认 F3：将当前选区或最近一张截图贴到屏幕。" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,7,0,4" TextWrapping="Wrap" />
     <Separator />
     <Grid>
      <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>

@@ -180,6 +180,7 @@ internal static partial class Program
         var cache = new ScreenshotRepository(root);
         cache.Load(new(), DateTimeOffset.UtcNow); cache.Clear();
         new SettingsStore(root).Save(new() { AutoCopy = false, AutoExpand = false,
+            PinHotkey = TestShortcut(0x7A),
             Hotkey = new() { Modifiers = HotkeyModifiers.Control | HotkeyModifiers.Alt | HotkeyModifiers.Shift, VirtualKey = 0x77, KeyName = "F8" } });
         var saved = Path.Combine(_output, "exports", "pipeline.png");
         var paths = new Queue<string?>([null, Path.Combine(root, "forbidden.png"), saved]);

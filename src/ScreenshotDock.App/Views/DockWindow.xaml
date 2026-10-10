@@ -47,7 +47,7 @@
     <TextBlock x:Name="StatusLabel" Text="单击复制 · 拖拽分享 · 右键更多操作" FontSize="12" Foreground="#E6F0FF" HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="Collapsed" />
     <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center">
      <TextBlock Text="把刚刚的画面，挂在这里。" Foreground="#E6F0FF" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />
-     <TextBlock x:Name="EmptyHint" Text="按 Ctrl + Shift + A 框选屏幕，截图会出现在这里" Foreground="#BED3F1" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
+     <TextBlock x:Name="EmptyHint" Text="按 F1 框选屏幕，截图会出现在这里" Foreground="#BED3F1" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
     </StackPanel>
    </Grid>
    <Grid Grid.Row="1">

@@ -129,7 +129,7 @@ public sealed class StorageTests : IDisposable
     public void InvalidHotkeyRestoresDefault()
     {
         var settings = new AppSettings { Hotkey = new() { Modifiers = HotkeyModifiers.None, VirtualKey = 0 } }.Normalize();
-        Assert.Equal("Ctrl + Shift + A", settings.Hotkey.Display);
+        Assert.Equal("F1", settings.Hotkey.Display);
     }
 
     [Fact]

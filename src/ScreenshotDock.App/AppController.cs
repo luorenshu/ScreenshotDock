@@ -20,7 +20,7 @@ public sealed class AppController : IDisposable
 {
     private readonly ScreenshotRepository _repository;
     private readonly SettingsStore _settingsStore;
-    private readonly GlobalHotkeyService _hotkey;
+    private readonly ScreenshotHotkeyService _hotkey;
     private readonly DockWindow _dock = new();
     private readonly EdgeWindow _edge;
     private readonly TrayService _tray;
@@ -37,6 +37,8 @@ public sealed class AppController : IDisposable
     private bool _capturing;
     private bool _saving;
     private bool _disposed;
+    private bool _shortcutsPausedByUser;
+    private (Guid Id, PixelRect Bounds)? _lastCapture;
 
     public AppController(string root, Func<Window, string?>? captureSavePathPicker = null, Func<EdgeWindow>? edgeFactory = null, IStartupRegistration? startup = null)
     {
@@ -51,7 +53,11 @@ public sealed class AppController : IDisposable
         using var icon = typeof(AppController).Assembly.GetManifestResourceStream("ScreenshotDock.AppIcon.ico")
             ?? throw new InvalidOperationException("缺少应用图标资源。");
         _tray = new(icon);
-        _hotkey.Pressed += (_, _) => _ = CaptureAsync();
+        _hotkey.Pressed += action =>
+        {
+            if (action == ScreenshotHotkeyAction.Capture) _ = CaptureAsync();
+            else PinMostRecent();
+        };
         _tray.CaptureRequested += () => _ = CaptureAsync();
         _tray.DockRequested += () => ExpandDock(manual: true);
         _tray.SettingsRequested += ShowSettings;
@@ -90,7 +96,7 @@ public sealed class AppController : IDisposable
         RefreshCards();
         _edge.Show();
         _edge.PositionAtTop();
-        if (!_hotkey.TryRegister(_settings.Hotkey, out var error))
+        if (!_hotkey.TryRegister(_settings.Hotkey, _settings.PinHotkey, out var error))
         { _tray.Notify(error); ShowSettings(); _settingsWindow?.ShowError(error); }
         _fullscreenTimer.Start();
         _cleanupTimer.Start();
@@ -165,11 +171,10 @@ public sealed class AppController : IDisposable
             var storage = _settings.Storage;
             var result = await Task.Run(() => _repository.Add(ScreenCaptureService.EncodePng(image), ScreenCaptureService.Thumbnail(image), storage, DateTimeOffset.UtcNow));
             RefreshCards();
+            if (capture.SourceBounds is { } sourceBounds) _lastCapture = (result.Item.Id, sourceBounds);
             if (capture.PinBounds is { } pinBounds)
             {
-                newPinnedImage = new(image, pinBounds);
-                _pinnedImages.Add(newPinnedImage);
-                newPinnedImage.Closed += (_, _) => _pinnedImages.Remove(newPinnedImage);
+                newPinnedImage = CreatePin(image, pinBounds);
             }
             var copied = false;
             if (_settings.AutoCopy || capture.ForceCopy)
@@ -206,6 +211,41 @@ public sealed class AppController : IDisposable
         _dock.Expand(TimeSpan.FromSeconds(3));
     }
 
+    private PinnedImageWindow CreatePin(BitmapSource image, PixelRect bounds)
+    {
+        var pinned = new PinnedImageWindow(image, bounds);
+        _pinnedImages.Add(pinned);
+        pinned.Closed += (_, _) => _pinnedImages.Remove(pinned);
+        return pinned;
+    }
+
+    public void PinMostRecent()
+    {
+        if (_disposed || _saving || _dock.IsConfirmationOpen || _settingsWindow is not null) return;
+        if (_capturing) { _overlays.FirstOrDefault()?.RequestPin(); return; }
+        if (_repository.Items.FirstOrDefault() is not { } latest)
+        { _tray.Notify("还没有截图，请先按截图快捷键截取一张图片。"); return; }
+        try
+        {
+            var image = ScreenCaptureService.LoadImage(_repository.GetImagePath(latest.Id));
+            PixelRect bounds;
+            if (_lastCapture is { } recent && recent.Id == latest.Id) bounds = recent.Bounds;
+            else
+            {
+                var cursor = DesktopEnvironment.Cursor;
+                var work = (DesktopEnvironment.Monitors.FirstOrDefault(m => m.Bounds.Contains(cursor)) ?? DesktopEnvironment.PrimaryMonitor).WorkArea;
+                var ratio = Math.Min(1, Math.Min((work.Width - 32.0) / image.PixelWidth, (work.Height - 32.0) / image.PixelHeight));
+                var width = Math.Max(1, (int)Math.Round(image.PixelWidth * ratio));
+                var height = Math.Max(1, (int)Math.Round(image.PixelHeight * ratio));
+                bounds = new(work.X + (work.Width - width) / 2, work.Y + (work.Height - height) / 2, width, height);
+            }
+            var pinned = CreatePin(image, bounds);
+            pinned.Show(); pinned.Activate();
+            _dock.SetStatus("最近截图已贴到屏幕 · Esc 移除当前贴图");
+        }
+        catch (Exception ex) { ReportError(ex); }
+    }
+
     private static string? ChooseCaptureSavePath(Window owner)
     {
         var dialog = new SaveFileDialog { Title = "保存标注截图", Filter = "PNG 图片|*.png", FileName = $"Screenshot_{DateTime.Now:yyyyMMdd_HHmmss}.png",
@@ -223,6 +263,7 @@ public sealed class AppController : IDisposable
         foreach (var monitor in DesktopEnvironment.Monitors)
         {
             var window = new CaptureWindow(frame, monitor, session, editor, smartSelection);
+            window.SetPinShortcut(_settings.PinHotkey);
             window.CancelRequested += () => completion.TrySetResult(null);
             window.CompleteRequested += () => _ = FinishAsync(window, false, false);
             window.CopyRequested += () => _ = FinishAsync(window, true, false);
@@ -249,7 +290,7 @@ public sealed class AppController : IDisposable
                 if (save && string.IsNullOrWhiteSpace(path)) return;
                 var image = AnnotationRenderer.Render(frame, session.Selection, editor.Document.Items);
                 if (path is not null) await Task.Run(() => CaptureFileWriter.SavePng(image, path, _repository.Root));
-                completion.TrySetResult(new(image, forceCopy, path, pin ? session.Selection : null));
+                completion.TrySetResult(new(image, forceCopy, path, pin ? session.Selection : null, session.Selection));
             }
             catch (Exception exception)
             {
@@ -333,8 +374,13 @@ public sealed class AppController : IDisposable
     private void ShowSettings()
     {
         if (_settingsWindow is not null) { _settingsWindow.Show(); _settingsWindow.Activate(); return; }
+        _hotkey.SetPaused(true, out _); // Let both recorders receive keys that would otherwise be consumed globally.
         _settingsWindow = new(_settings, ApplySettingsAsync, _startup);
-        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        _settingsWindow.Closed += (_, _) =>
+        {
+            _settingsWindow = null;
+            if (!_disposed && !_shortcutsPausedByUser && !_hotkey.SetPaused(false, out var error)) _tray.Notify(error);
+        };
         _settingsWindow.Show();
     }
 
@@ -343,11 +389,12 @@ public sealed class AppController : IDisposable
         var previous = _settings;
         // Settings window may have been open while dock lock changed.
         updated = updated with { DockLocked = previous.DockLocked };
-        if (!_hotkey.TryRegister(updated.Hotkey, out var error)) return error;
-        try { _settingsStore.Save(updated); }
+        try
+        {
+            if (!_hotkey.TryRegister(updated.Hotkey, updated.PinHotkey, out var error, () => _settingsStore.Save(updated))) return error;
+        }
         catch (Exception e)
         {
-            _hotkey.TryRegister(previous.Hotkey, out _);
             Log.Error(e, "Cannot persist settings");
             return $"设置保存失败：{e.Message}";
         }
@@ -361,9 +408,10 @@ public sealed class AppController : IDisposable
 
     private void TogglePause()
     {
-        if (!_hotkey.SetPaused(!_hotkey.IsPaused, out var error)) _tray.Notify(error);
-        _tray.SetPaused(_hotkey.IsPaused);
-        _dock.SetStatus(_hotkey.IsPaused ? "快捷键已暂停，仍可点击按钮截图" : "快捷键已恢复");
+        _shortcutsPausedByUser = !_shortcutsPausedByUser;
+        if (!_hotkey.SetPaused(_shortcutsPausedByUser || _settingsWindow is not null, out var error)) _tray.Notify(error);
+        _tray.SetPaused(_shortcutsPausedByUser);
+        _dock.SetStatus(_shortcutsPausedByUser ? "截图和贴图快捷键已暂停，仍可点击按钮操作" : "快捷键已恢复");
     }
 
     public void ReportError(Exception exception)

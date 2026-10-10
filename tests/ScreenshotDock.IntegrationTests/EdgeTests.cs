@@ -106,6 +106,7 @@ internal static partial class Program
         pointer = new(monitor.Bounds.X + 40, monitor.Bounds.Y + 40);
         var root = Path.Combine(_output, "app-data");
         new SettingsStore(root).Save(new() { AutoCopy = false, AutoExpand = false,
+            PinHotkey = TestShortcut(0x7A),
             Hotkey = new() { Modifiers = HotkeyModifiers.Control | HotkeyModifiers.Alt | HotkeyModifiers.Shift, VirtualKey = 0x77, KeyName = "F8" } });
         using var controller = new AppController(root, edgeFactory: () => new EdgeWindow(() => pointer, () => pressed));
         try

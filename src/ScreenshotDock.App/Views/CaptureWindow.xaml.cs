@@ -197,7 +197,9 @@ public partial class CaptureWindow : Window
     private void PrepareCompletion() { _editor.CommitText(); if (_editor.IsDrawing) _editor.EndStroke(); _editor.EndMosaicMove(); }
     private void CopyClick(object sender, RoutedEventArgs e) { PrepareCompletion(); if (ValidSelection()) CopyRequested?.Invoke(); }
     private void SaveClick(object sender, RoutedEventArgs e) { PrepareCompletion(); if (ValidSelection()) SaveRequested?.Invoke(); }
-    private void PinClick(object sender, RoutedEventArgs e) { PrepareCompletion(); if (ValidSelection()) PinRequested?.Invoke(); }
+    private void PinClick(object sender, RoutedEventArgs e) => RequestPin();
+    public void RequestPin() { PrepareCompletion(); if (ValidSelection()) PinRequested?.Invoke(); }
+    public void SetPinShortcut(HotkeySettings shortcut) => PinCaptureButton.ToolTip = $"贴到屏幕 ({shortcut.Display}) · 点击选中，Esc 移除";
     private void CancelClick(object sender, RoutedEventArgs e) => CancelRequested?.Invoke();
 
     private void BeginText(PixelPoint screenPoint)

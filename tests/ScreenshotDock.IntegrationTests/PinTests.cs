@@ -44,6 +44,7 @@ internal static partial class Program
         var repository = new ScreenshotRepository(root);
         repository.Load(new(), DateTimeOffset.UtcNow); repository.Clear();
         new SettingsStore(root).Save(new() { AutoCopy = false, AutoExpand = false,
+            PinHotkey = TestShortcut(0x7A),
             Hotkey = new() { Modifiers = HotkeyModifiers.Control | HotkeyModifiers.Alt | HotkeyModifiers.Shift, VirtualKey = 0x77, KeyName = "F8" } });
         using var controller = new AppController(root);
         await controller.StartAsync();

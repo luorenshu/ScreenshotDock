@@ -2,7 +2,7 @@
 
 Windows 原生截图与临时素材收纳工具。C# / .NET 10 / WPF。按照提供的产品 PRD v1.0 实现 V1.0 MVP。
 
-**Ctrl + Shift + A → 自动识别并单击选区 / 拖动框选 → 工具栏标注 → 完成 / 复制 / 保存 → 顶部收纳。**
+**F1 → 自动识别并单击选区 / 拖动框选 → 工具栏标注 → 完成 / 复制 / 保存 → 顶部收纳。F3 将当前选区或最近截图贴到屏幕。**
 
 ## 运行
 
@@ -27,6 +27,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Edge
 powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Settings
 powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Annotations
 powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -SmartSelection
+powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Shortcuts
 powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Integration
 powershell -ExecutionPolicy Bypass -File .\scripts\publish.ps1
 ```
@@ -47,7 +48,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\publish.ps1
 - `tests`：存储回归测试和 Windows 集成测试。
 - `docs`：[使用说明](docs/使用说明.md)、验收与限制。
 
-全局快捷键替换先注册新组合，冲突不会拆掉旧组合。截图前隐藏自身窗口并等待 DWM 完成更新；每个显示器独立呈现选区，但选区和最终裁剪始终使用虚拟桌面的物理像素。暂存原图与缩略图通过 GUID 定位，JSON 不控制删除路径。
+截图与贴图默认全局快捷键分别为 F1、F3，可分别录入单键或组合键。`ScreenshotHotkeyService` 在两个新组合和设置持久化都成功后提交替换，失败时只释放新注册；交换两个现有快捷键时复用原生注册 ID，避免互相占用。两个动作不能使用相同组合。打开设置期间释放两键供录入，关闭后恢复；托盘暂停同时作用于两键。旧默认 Ctrl + Shift + A 自动升级为 F1，已自定义的其他组合保留；新版本明确保存的 Ctrl + Shift + A 也会保留。`-Shortcuts` 验证实际 F1/F3、组合键、互换、冲突、写入失败与截图及贴图完整流程，结果位于 `artifacts/shortcut-verification`。
+
+截图编辑中按贴图快捷键会确认待输入文字、合成标注并贴在选区原位置；截图结束后按键则从暂存库加载最近截图，可同时贴多张。本次截图保留原位置；重启后恢复的最近图片居中显示在鼠标所在屏幕，并按需缩小到可见范围。没有截图时提示先截图。截图前隐藏自身窗口并等待 DWM 完成更新；每个显示器独立呈现选区，但选区和最终裁剪始终使用虚拟桌面的物理像素。暂存原图与缩略图通过 GUID 定位，JSON 不控制删除路径。
 
 开始截图时，`CaptureRegionDetector` 在浮层显示前保存可见窗口的顺序、物理范围与原生子控件范围；鼠标悬停先呈现窗口或子控件预选，再通过后台 UI Automation 细化按钮、输入框等区域。直接从原窗口句柄遍历控件，避免识别到覆盖其上的截图浮层。后台查询按短暂停留防抖，限制遍历深度、节点数及等待时间；进程内只允许一个查询在运行，慢提供程序不会阻塞框选。UI Automation 独立线程要求参见 [Microsoft 线程说明](https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-threading)。没有可用控件信息时保留窗口级选区。
 
