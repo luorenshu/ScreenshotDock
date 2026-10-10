@@ -64,7 +64,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\publish.ps1
 
 箭头工具提供细线、实心、渐尖、空心和折线五种样式。空心样式使用渐尖轮廓，尾部细、靠近箭头逐渐变宽，内部保持透明。每个 `ScreenshotAnnotation` 保留独立的 `ArrowStyle` 和折线路径，`ArrowGeometry` 共用于界面绘制、导出和移除命中检测，实心箭头可点击内部移除，空心箭头按外轮廓命中。折线路径保留转折，去除细小鼠标抖动；工具切换不会修改已绘制的箭头。
 
-截图工具栏的图钉按钮将带标注的图片贴到屏幕，并保留在暂存栏。`PinnedImageWindow` 为独立的置顶窗口，支持同时显示多张、拖动摆放、未选中时外侧显示淡白色阴影，点击激活后变为蓝色阴影，Esc 仅关闭收到键盘输入的贴图，不删除暂存图片。再次截图前隐藏已有贴图，结束或取消后恢复；退出时关闭所有贴图。`scripts/test.ps1 -Pin` 验证渐尖空心箭头像素、完整贴图流程、多个窗口的选择与 Esc 移除，证据位于 `artifacts/pin-verification`。
+截图工具栏的图钉按钮将带标注的图片贴到屏幕，并保留在暂存栏。`PinnedImageWindow` 为独立的置顶窗口，支持同时显示多张、拖动内部摆放、拖动四边和四角等比例缩放；边缘固定对侧边并保持另一方向的中心，四角固定对角，最短边限制为 32 DIP。命中范围、最小尺寸与外侧阴影留白按当前 DPI 换算为物理像素，整次拖动基于初始范围计算，避免累积取整误差；鼠标捕获保证移出原窗口后仍可拖动，松开、失去捕获或关闭时结束。缩放只改变显示范围，源位图和暂存文件保持原始分辨率。未选中时外侧显示淡白色阴影，点击激活后变为蓝色阴影，Esc 仅关闭收到键盘输入的贴图，不删除暂存图片。再次截图前隐藏已有贴图，结束或取消后恢复；退出时关闭所有贴图。`scripts/test.ps1 -Pin` 验证八个缩放方向与光标、固定边和比例、最小尺寸、移动与捕获释放、多个窗口的选择及 Esc 移除，并回归渐尖空心箭头像素和完整贴图流程，证据位于 `artifacts/pin-verification`。
 
 截图光标使用嵌入的双层 CUR 资源，深色外沿配白色内芯，覆盖十字、移动、四种缩放方向及文字模式。`scripts/create-cursors.ps1` 可重新生成资源；通过 [WPF Cursor(Stream, Boolean)](https://learn.microsoft.com/en-us/dotnet/api/system.windows.input.cursor.-ctor?view=windowsdesktop-10.0#system-windows-input-cursor-ctor(system-io-stream-system-boolean)) 加载并启用 DPI 缩放，发布程序无需旁置光标文件。
 

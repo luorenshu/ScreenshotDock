@@ -2,8 +2,9 @@
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  Title="ScreenshotDock · 贴图" WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="Manual"
  AllowsTransparency="True" Background="Transparent" Topmost="True" ShowInTaskbar="False"
- PreviewKeyDown="PinnedKeyDown" MouseLeftButtonDown="PinnedMouseDown">
- <Border x:Name="SelectionFrame" Margin="8" Background="White" ToolTip="拖动摆放 · 点击选中 · Esc 移除贴图">
+ PreviewKeyDown="PinnedKeyDown" MouseLeftButtonDown="PinnedMouseDown" MouseLeftButtonUp="PinnedMouseUp"
+ MouseMove="PinnedMouseMove" LostMouseCapture="PinnedCaptureLost">
+ <Border x:Name="SelectionFrame" Margin="8" Background="White" ToolTip="拖动内部摆放 · 拖动边缘或四角缩放 · Esc 移除贴图">
   <Border.Style><Style TargetType="Border">
    <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="White" BlurRadius="12" ShadowDepth="0" Opacity="0.55" /></Setter.Value></Setter>
    <Style.Triggers><DataTrigger Binding="{Binding IsActive, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"><Setter Property="Effect"><Setter.Value><DropShadowEffect Color="#176BFF" BlurRadius="12" ShadowDepth="0" Opacity="0.75" /></Setter.Value></Setter></DataTrigger></Style.Triggers>

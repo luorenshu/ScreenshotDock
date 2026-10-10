@@ -22,6 +22,7 @@ internal static partial class Program
 {
     private static async Task RunPinTestsAsync()
     {
+        await RunPinResizeChecksAsync();
         var frame = new DesktopFrame(EditorFixture(400, 220), new(0, 0, 400, 220));
         var outline = new ScreenshotAnnotation(CaptureTool.Arrow, new(30, 100), new(360, 100), 0xFFFF4D4F, 5, ArrowStyle: ArrowStyle.Outline);
         var image = AnnotationRenderer.Render(frame, frame.Bounds, [outline]);
