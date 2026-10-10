@@ -137,7 +137,7 @@ public sealed class CaptureEditSession : IDisposable
         var bounds = PixelRect.Between(annotation.Start, annotation.End);
         if (bounds.Intersect(new(0, 0, Selection.Selection.Width, Selection.Selection.Height)).IsEmpty) return SelectionAction.None;
         return RegionSelectionGeometry.HitTestHandle(bounds,
-            new(screenPoint.X - Selection.Selection.X, screenPoint.Y - Selection.Selection.Y), 5 * scale);
+            new(screenPoint.X - Selection.Selection.X, screenPoint.Y - Selection.Selection.Y), 5 * scale, annotation.Tool);
     }
 
     public bool TryBeginRegionResize(PixelPoint screenPoint, double scale)

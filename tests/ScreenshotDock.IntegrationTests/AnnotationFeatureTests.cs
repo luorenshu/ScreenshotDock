@@ -484,7 +484,7 @@ internal static partial class Program
                 editor.TryBeginRegionResize(Screen(515, 97), monitor.Scale); editor.UpdateRegionEdit(Screen(525, 97)); editor.EndRegionEdit();
                 ClickEditor(window, "EllipseToolButton"); DrawEditorStroke(editor, Screen(280, 170), Screen(400, 240));
                 editor.TryBeginRegionMove(Screen(340, 205), monitor.Scale); editor.UpdateRegionEdit(Screen(320, 195)); editor.EndRegionEdit();
-                editor.TryBeginRegionResize(Screen(380, 230), monitor.Scale); editor.UpdateRegionEdit(Screen(400, 240)); editor.EndRegionEdit();
+                editor.TryBeginRegionResize(Screen(380, 195), monitor.Scale); editor.UpdateRegionEdit(Screen(400, 195)); editor.EndRegionEdit();
                 ClickEditor(window, "TextToolButton"); window.Editor.BeginStroke(new(selection.X + 35, selection.Y + 150), monitor.Scale);
                 ((TextBox)window.FindName("AnnotationTextBox")).Text = "首次标注"; window.CommitText();
                 var text = window.Editor.Document.Items[^1];

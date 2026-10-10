@@ -59,12 +59,12 @@ internal static partial class Program
                 "The ellipse toolbar tool selects a newly drawn circle for immediate adjustment");
             await Task.Delay(30);
             SaveAnnotationPreview(SaveVisual(window, "ellipse-selected.png"), selection, monitor, "ellipse-selected-preview.png");
-            editor.TryBeginRegionResize(Screen(510, 280), monitor.Scale); editor.UpdateRegionEdit(Screen(560, 305));
+            editor.TryBeginRegionResize(Screen(510, 200), monitor.Scale); editor.UpdateRegionEdit(Screen(560, 200));
             await Task.Delay(30);
             SaveAnnotationPreview(SaveVisual(window, "ellipse-resizing.png"), selection, monitor, "ellipse-resizing-preview.png");
             var shape = editor.RegionPreview!;
             exported = AnnotationRenderer.Render(frame, selection, [original, shape]);
-            Check(RedAt(exported, 560, 212) && !RedAt(exported, 510, 200),
+            Check(RedAt(exported, 560, 200) && !RedAt(exported, 510, 200),
                 "Resizing a circle updates its ellipse outline rather than scaling a cached bitmap");
             var canvas = ((Panel)window.FindName("Surface")).Children.OfType<FrameworkElement>().First();
             canvas.RaiseEvent(new MouseEventArgs(System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount)
@@ -118,7 +118,13 @@ internal static partial class Program
             (new PixelPoint(30, 85), new PixelPoint(20, 85), new PixelPoint(20, 40), new PixelPoint(170, 130)),
             (new PixelPoint(170, 85), new PixelPoint(190, 85), new PixelPoint(30, 40), new PixelPoint(190, 130))
         };
-        for (var i = 0; i < handles.Length; i++)
+        editor.TryBeginRegionMove(Screen(100, 85), 1.5); editor.EndRegionEdit();
+        if (tool == CaptureTool.Ellipse)
+            Check(handles.Take(4).All(handle =>
+                editor.HitTestRegionHandle(Screen(handle.Item1.X, handle.Item1.Y), 1.5) == SelectionAction.None
+                && !editor.TryBeginRegionResize(Screen(handle.Item1.X, handle.Item1.Y), 1.5)),
+                label + "the four hidden corner handles cannot begin resizing");
+        for (var i = tool == CaptureTool.Ellipse ? 4 : 0; i < handles.Length; i++)
         {
             var (anchor, target, start, end) = handles[i];
             editor.TryBeginRegionMove(Screen(100, 85), 1.5); editor.EndRegionEdit();
@@ -128,16 +134,17 @@ internal static partial class Program
             editor.Document.Undo();
         }
         editor.TryBeginRegionMove(Screen(100, 85), 1.5); editor.EndRegionEdit();
-        editor.TryBeginRegionResize(Screen(170, 130), 1.5); editor.UpdateRegionEdit(Screen(1000, 1000));
-        Check(editor.RegionPreview?.End == new PixelPoint(320, 220), label + "enlargement stops at the screenshot boundary");
+        var resizeAnchor = tool == CaptureTool.Ellipse ? Screen(170, 85) : Screen(170, 130);
+        editor.TryBeginRegionResize(resizeAnchor, 1.5); editor.UpdateRegionEdit(Screen(1000, 1000));
+        Check(editor.RegionPreview?.End == new PixelPoint(320, tool == CaptureTool.Ellipse ? 130 : 220), label + "enlargement stops at the screenshot boundary");
         editor.UpdateRegionEdit(Screen(-1000, -1000));
-        Check(editor.RegionPreview?.End == new PixelPoint(31, 41), label + "shrinking across the opposite corner preserves a valid minimum");
+        Check(editor.RegionPreview?.End == new PixelPoint(31, tool == CaptureTool.Ellipse ? 130 : 41), label + "shrinking across the opposite edge preserves a valid minimum");
         editor.CancelRegionEdit();
         Check(editor.Document.Items[0] == original && !editor.IsEditingRegion, label + "cancelling restores the original shape");
         var reversed = original with { Start = original.End, End = original.Start };
         editor.Document.ReplaceAt(0, reversed); editor.TryBeginRegionMove(Screen(100, 85), 1.5); editor.EndRegionEdit();
-        editor.TryBeginRegionResize(Screen(170, 130), 1.5); editor.UpdateRegionEdit(Screen(190, 145)); editor.EndRegionEdit();
-        Check(editor.Document.Items[0] == reversed with { Start = new(190, 145) }, label + "reverse-drawn shapes resize the visual corner correctly");
+        editor.TryBeginRegionResize(resizeAnchor, 1.5); editor.UpdateRegionEdit(Screen(190, 145)); editor.EndRegionEdit();
+        Check(editor.Document.Items[0] == reversed with { Start = new(190, tool == CaptureTool.Ellipse ? 130 : 145) }, label + "reverse-drawn shapes resize the visible handle correctly");
         var overlap = original with { Start = new(60, 60), End = new(150, 120), ColorArgb = 0xFF2488FF };
         editor.Document.Add(overlap); editor.TryBeginRegionMove(Screen(100, 85), 1.5);
         Check(editor.SelectedRegionIndex == 1 && editor.RegionPreview == overlap, label + "overlapping shapes select the highest eligible layer");

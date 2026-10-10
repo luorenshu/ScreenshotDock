@@ -362,20 +362,23 @@ internal sealed class SelectionCanvas : FrameworkElement
             if (activeRegion is not null)
             {
                 var bounds = PixelRect.Between(activeRegion.Start, activeRegion.End);
-                var outline = new Rect(Local(selection.X + bounds.X, selection.Y + bounds.Y),
-                    Local(selection.X + bounds.Right, selection.Y + bounds.Bottom));
-                // Keep the one-DIP white stroke inside the region and crisp on whole-pixel bounds.
-                if (outline.Width >= 1 && outline.Height >= 1) outline.Inflate(-0.5, -0.5);
-                // Matching dash lengths in DIPs keep the dark underlay aligned with the white editing outline.
-                var underlay = new Pen(new SolidColorBrush(Color.FromArgb(90, 0, 0, 0)), 1.5) { DashStyle = new DashStyle([2, 8.0 / 3], 0) };
-                var white = new Pen(Brushes.White, 1) { DashStyle = new DashStyle([3, 4], 0) };
-                drawing.DrawRectangle(null, underlay, outline);
-                drawing.DrawRectangle(null, white, outline);
+                if (activeRegion.Tool == CaptureTool.Mosaic)
+                {
+                    var outline = new Rect(Local(selection.X + bounds.X, selection.Y + bounds.Y),
+                        Local(selection.X + bounds.Right, selection.Y + bounds.Bottom));
+                    // Keep the one-DIP white stroke inside the region and crisp on whole-pixel bounds.
+                    if (outline.Width >= 1 && outline.Height >= 1) outline.Inflate(-0.5, -0.5);
+                    // Matching dash lengths in DIPs keep the dark underlay aligned with the white editing outline.
+                    var underlay = new Pen(new SolidColorBrush(Color.FromArgb(90, 0, 0, 0)), 1.5) { DashStyle = new DashStyle([2, 8.0 / 3], 0) };
+                    var white = new Pen(Brushes.White, 1) { DashStyle = new DashStyle([3, 4], 0) };
+                    drawing.DrawRectangle(null, underlay, outline);
+                    drawing.DrawRectangle(null, white, outline);
+                }
                 if (!_editor.IsDrawing)
                 {
                     var fill = new SolidColorBrush(Color.FromRgb(35, 37, 41));
                     var border = new Pen(Brushes.White, 1);
-                    foreach (var (point, _) in RegionSelectionGeometry.Handles(bounds))
+                    foreach (var (point, _) in RegionSelectionGeometry.Handles(bounds, activeRegion.Tool))
                     {
                         var center = Local(selection.X + point.X, selection.Y + point.Y);
                         drawing.DrawRectangle(fill, border, new Rect(center.X - 2.5, center.Y - 2.5, 6, 6));
