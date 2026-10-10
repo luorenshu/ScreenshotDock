@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -20,6 +21,8 @@ public partial class CaptureWindow : Window
     private readonly Dictionary<CaptureTool, Button> _toolButtons;
     private readonly Dictionary<ArrowStyle, Button> _arrowStyleButtons;
     private PixelPoint? _textAnchor;
+    private PixelPoint? _textDragStart;
+    private Size _textDragSize;
     private const double TextEditorInset = 6;
     private double _textMaxWidth;
     private bool _syncingStyle;
@@ -66,6 +69,7 @@ public partial class CaptureWindow : Window
         };
         Activated += (_, _) => { if (AnnotationTextBox.Visibility != Visibility.Visible) _canvas.Focus(); };
         SizeChanged += (_, _) => RefreshEditor();
+        Closing += (_, _) => FinishTextDrag(false);
         Closed += (_, _) =>
         {
             _canvas.Detach();
@@ -130,6 +134,7 @@ public partial class CaptureWindow : Window
         UndoButton.IsEnabled = _editor.Document.CanUndo;
         RedoButton.IsEnabled = _editor.Document.CanRedo;
         CaptureToolbar.IsEnabled = !_editor.IsBusy;
+        TextEditorHost.IsEnabled = !_editor.IsBusy;
         _canvas.IsEnabled = !_editor.IsBusy;
         AnnotationOptions.Visibility = _editor.Tool is CaptureTool.Select or CaptureTool.Eraser or CaptureTool.Mosaic ? Visibility.Collapsed : Visibility.Visible;
         MosaicOptions.Visibility = _editor.Tool == CaptureTool.Mosaic ? Visibility.Visible : Visibility.Collapsed;
@@ -231,8 +236,8 @@ public partial class CaptureWindow : Window
         AnnotationTextBox.Text = original?.Text ?? "";
         AnnotationTextBox.FontSize = _editor.FontSize;
         AnnotationTextBox.Foreground = ColorBrush();
-        Canvas.SetLeft(AnnotationTextBox, point.X);
-        Canvas.SetTop(AnnotationTextBox, point.Y);
+        Canvas.SetLeft(TextEditorHost, point.X);
+        Canvas.SetTop(TextEditorHost, point.Y);
         AnnotationTextBox.Visibility = Visibility.Visible;
         UpdateTextEditorSize();
         Activate();
@@ -243,19 +248,88 @@ public partial class CaptureWindow : Window
     private void TextEditorChanged(object sender, TextChangedEventArgs e) => UpdateTextEditorSize();
     private void UpdateTextEditorSize()
     {
-        if (!_textAnchor.HasValue || _textMaxWidth <= 0) return;
+        if (!_textAnchor.HasValue || _textMaxWidth <= 0 || _textDragStart.HasValue) return;
         var content = new FormattedText(string.IsNullOrEmpty(AnnotationTextBox.Text) ? " " : AnnotationTextBox.Text,
             CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
             new Typeface(AnnotationTextBox.FontFamily, AnnotationTextBox.FontStyle, AnnotationTextBox.FontWeight, AnnotationTextBox.FontStretch),
             AnnotationTextBox.FontSize, Brushes.Black, VisualTreeHelper.GetDpi(AnnotationTextBox).PixelsPerDip);
         // Reserve one character for the caret and ongoing IME composition before wrapping at the actual selection edge.
         var width = content.WidthIncludingTrailingWhitespace + TextEditorInset * 2 + AnnotationTextBox.FontSize;
+        if (_editor.EditingText is { TextWidth: > 0 } original && original.Text == AnnotationTextBox.Text
+            && Math.Abs(original.FontSize - AnnotationTextBox.FontSize * _canvas.PixelsPerDip) < 0.01)
+            width = original.TextWidth / _canvas.PixelsPerDip + TextEditorInset * 2;
         AnnotationTextBox.Width = Math.Clamp(width, Math.Min(40, _textMaxWidth), _textMaxWidth);
+    }
+
+    private void TextEditorDragStarted(object sender, DragStartedEventArgs e)
+    {
+        e.Handled = true;
+        if (!_textAnchor.HasValue || _editor.IsBusy)
+        {
+            ((Thumb)sender).CancelDrag();
+            return;
+        }
+        AnnotationTextBox.UpdateLayout();
+        _textDragStart = _textAnchor;
+        _textDragSize = new(AnnotationTextBox.ActualWidth * _canvas.PixelsPerDip,
+            AnnotationTextBox.ActualHeight * _canvas.PixelsPerDip);
+    }
+
+    private void TextEditorDragDelta(object sender, DragDeltaEventArgs e)
+    {
+        e.Handled = true;
+        if (!_textDragStart.HasValue || _editor.IsBusy) return;
+        var selection = _editor.Selection.Selection;
+        var bounds = selection.Intersect(_monitor.Bounds);
+        var scale = _canvas.PixelsPerDip;
+        var inset = (int)Math.Round(TextEditorInset * scale);
+        var left = bounds.X - selection.X + inset;
+        var top = bounds.Y - selection.Y + inset;
+        var right = Math.Max(left, bounds.Right - selection.X - (int)Math.Ceiling(_textDragSize.Width) + inset);
+        var bottom = Math.Max(top, bounds.Bottom - selection.Y - (int)Math.Ceiling(_textDragSize.Height) + inset);
+        // Thumb reports displacement from its original local grab point; use its current visual position,
+        // so clipping at the boundary or a pending layout cannot accumulate extra pointer movement.
+        var origin = TextEditorHost.PointToScreen(new Point());
+        PositionTextEditor(new(Math.Clamp((int)Math.Round(origin.X - selection.X + inset + e.HorizontalChange * scale), left, right),
+            Math.Clamp((int)Math.Round(origin.Y - selection.Y + inset + e.VerticalChange * scale), top, bottom)));
+    }
+
+    private void PositionTextEditor(PixelPoint anchor)
+    {
+        _textAnchor = anchor;
+        var selection = _editor.Selection.Selection;
+        var bounds = selection.Intersect(_monitor.Bounds);
+        var scale = _canvas.PixelsPerDip;
+        var inset = (int)Math.Round(TextEditorInset * scale);
+        var x = selection.X + anchor.X - inset;
+        var y = selection.Y + anchor.Y - inset;
+        var point = PointFromScreen(new Point(x, y));
+        Canvas.SetLeft(TextEditorHost, point.X);
+        Canvas.SetTop(TextEditorHost, point.Y);
+        _textMaxWidth = Math.Max(1, (bounds.Right - x) / scale);
+        AnnotationTextBox.MaxHeight = Math.Max(1, (bounds.Bottom - y) / scale);
+        AnnotationTextBox.MinHeight = Math.Min(38, AnnotationTextBox.MaxHeight);
+    }
+
+    private void TextEditorDragCompleted(object sender, DragCompletedEventArgs e)
+    {
+        e.Handled = true;
+        FinishTextDrag(e.Canceled);
+        if (_textAnchor.HasValue) AnnotationTextBox.Focus();
+    }
+
+    private void FinishTextDrag(bool cancel)
+    {
+        if (_textDragStart is not { } start) return;
+        _textDragStart = null;
+        if (cancel) PositionTextEditor(start);
+        if (Mouse.Captured is Thumb thumb && TextEditorHost.Children.Contains(thumb)) thumb.CancelDrag();
     }
 
     public void CommitText()
     {
         if (!_textAnchor.HasValue) return;
+        FinishTextDrag(false);
         var anchor = _textAnchor.Value;
         var text = AnnotationTextBox.Text;
         _textAnchor = null;
@@ -265,7 +339,7 @@ public partial class CaptureWindow : Window
             _editor.FontSize * scale, text, TextWidth: Math.Max(1, (AnnotationTextBox.Width - TextEditorInset * 2) * scale));
         if (_editor.EditingText is { } original && original.Text == annotation.Text
             && original.ColorArgb == annotation.ColorArgb && Math.Abs(original.FontSize - annotation.FontSize) < 0.01)
-            annotation = original;
+            annotation = original with { Start = anchor, End = anchor };
         _editor.SaveText(annotation);
         _canvas.Focus();
     }
@@ -276,6 +350,13 @@ public partial class CaptureWindow : Window
         else if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) { CommitText(); e.Handled = true; }
         else if (e.Key == Key.Escape)
         {
+            if (_textDragStart.HasValue)
+            {
+                FinishTextDrag(true);
+                AnnotationTextBox.Focus();
+                e.Handled = true;
+                return;
+            }
             _textAnchor = null;
             AnnotationTextBox.Visibility = Visibility.Collapsed;
             _editor.CancelTextEdit();

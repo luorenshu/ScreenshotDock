@@ -43,6 +43,7 @@ internal static partial class Program
     private static async Task RunAnnotationFeatureTestsAsync()
     {
         await RunShapeEditChecksAsync();
+        await RunTextMoveChecksAsync();
         var source = PixelPattern(93, 67);
         var frame = new DesktopFrame(source, new(-93, -67, 93, 67));
         var mosaic = new ScreenshotAnnotation(CaptureTool.Mosaic, new(5, 7), new(85, 59), 0, 5, MosaicBlockSize: 16);
@@ -169,7 +170,7 @@ internal static partial class Program
                 $"Inline text grows naturally beyond the old fixed width as more characters are entered: {shortWidth:F1} / {longWidth:F1}");
             textbox.Text = string.Concat(Enumerable.Repeat("到达选区边缘自动换行。", 8));
             await Task.Delay(40); textbox.UpdateLayout();
-            Check(textbox.LineCount > 1 && Canvas.GetLeft(textbox) + textbox.ActualWidth <= (selection.Right - monitor.Bounds.X) / monitor.Scale + 1,
+            Check(textbox.LineCount > 1 && Canvas.GetLeft((FrameworkElement)window.FindName("TextEditorHost")) + textbox.ActualWidth <= (selection.Right - monitor.Bounds.X) / monitor.Scale + 1,
                 "Long text wraps at the selection edge without extending outside the screenshot");
             textbox.Text = "这段文字可以再次编辑";
             Check(textbox.Width < longWidth, "Deleting characters shrinks the text input width again");
@@ -490,6 +491,7 @@ internal static partial class Program
                 var text = window.Editor.Document.Items[^1];
                 window.Editor.TryEditText(new(selection.X + text.Start.X + 2, selection.Y + text.Start.Y + 2), monitor.Scale);
                 ((TextBox)window.FindName("AnnotationTextBox")).Text = action == "SaveCaptureButton" ? "修改后的保存文字" : "修改后的贴图文字";
+                var textDrag = StartTextDrag(window); MoveTextDrag(textDrag, 15, 8); EndTextDrag(textDrag);
                 ClickEditor(window, action);
                 await capture.WaitAsync(TimeSpan.FromSeconds(5));
                 repository.Load(new(), DateTimeOffset.UtcNow);
@@ -497,6 +499,9 @@ internal static partial class Program
                 Check(retained.PixelWidth == 540 && retained.PixelHeight == 270 && Pixel(retained, 50, 50).SequenceEqual(Pixel(retained, 59, 59)),
                     "Full capture pipeline preserves physical dimensions and mosaic blocks: " + action);
                 Check(RedAtSomeText(retained), "Full capture pipeline commits pending Chinese reedited text: " + action);
+                Check(editor.Document.Items[^1].Start == new PixelPoint(text.Start.X + (int)Math.Round(15 * monitor.Scale),
+                    text.Start.Y + (int)Math.Round(8 * monitor.Scale)),
+                    "Full capture pipeline commits the pending text at its dragged location: " + action);
                 Check(RedAt(retained, 525, 95) && RedAt(retained, 330, 160),
                     "Full capture pipeline includes the moved and resized rectangle and ellipse: " + action);
                 if (action == "SaveCaptureButton")
