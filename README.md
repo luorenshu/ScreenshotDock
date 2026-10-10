@@ -70,7 +70,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\publish.ps1
 
 使用的系统行为参见 Microsoft 文档：[RegisterHotKey](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey)、[Per-monitor DPI](https://learn.microsoft.com/en-us/windows/win32/hidpi/high-dpi-desktop-application-development-on-windows)、[BitBlt](https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-bitblt)、[WPF Drag and Drop](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/drag-and-drop-overview)。
 
-收起时顶部没有可见触发块。`EdgeWindow` 是主屏完整宽度、4 DIP 高的透明点击穿透窗口；仅可见时轮询物理鼠标坐标，在顶部停留约 180 ms 后请求展开，离开或按住鼠标按钮时重置。展开、截图和全屏避让时暂停，重新显示时恢复；关闭时停止定时器。透明窗口不依赖鼠标进入事件，不拦截浏览器顶部点击或拖动。
+收起时顶部没有可见触发块。`EdgeWindow` 是主屏顶部居中、宽度约为屏幕三分之一、4 DIP 高的透明点击穿透窗口；仅可见时轮询物理鼠标坐标，在这段区域停留约 180 ms 后请求展开，离开或按住鼠标按钮时重置。顶部两侧不触发展开，方便操作浏览器标签和窗口按钮；展开后的截图栏仍覆盖完整屏幕宽度。展开、截图和全屏避让时暂停，重新显示时恢复；关闭时停止定时器。透明窗口不依赖鼠标进入事件，不拦截浏览器顶部点击或拖动。
 
 展开后的截屏、锁定、设置位于右上方，清空暂存位于右下方；提示文字居中显示在挂绳上方。右上角收起按钮已移除，解锁后移出热区自动收起。清空暂存使用带数量的模态确认窗口，取消、关闭或 Esc 均保留图片；弹窗期间暂停自动收起并阻止截图快捷键进入采集。
 

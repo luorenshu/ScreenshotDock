@@ -48,7 +48,9 @@ public sealed class EdgeWindow : Window
     public void PositionAtTop()
     {
         var monitor = DesktopEnvironment.PrimaryMonitor;
-        _triggerBounds = new(monitor.Bounds.X, monitor.Bounds.Y, monitor.Bounds.Width, Math.Max(2, (int)Math.Ceiling(4 * monitor.Scale)));
+        var width = Math.Max(1, monitor.Bounds.Width / 3);
+        _triggerBounds = new(monitor.Bounds.X + (monitor.Bounds.Width - width) / 2, monitor.Bounds.Y,
+            width, Math.Max(2, (int)Math.Ceiling(4 * monitor.Scale)));
         ResetHover();
         DesktopEnvironment.Place(this, _triggerBounds);
     }
