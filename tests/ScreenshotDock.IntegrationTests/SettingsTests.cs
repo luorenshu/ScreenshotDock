@@ -43,7 +43,7 @@ internal static partial class Program
                     "Disabling startup is repeatable and preserves other registry entries");
 
             var saveCalls = 0;
-            var settings = new SettingsWindow(new(), Path.Combine(_output, "app-data"), _ => { saveCalls++; return Task.FromResult<string?>(null); }, startup);
+            var settings = new SettingsWindow(new(), _ => { saveCalls++; return Task.FromResult<string?>(null); }, startup);
             try
             {
                 settings.Show();
@@ -58,7 +58,7 @@ internal static partial class Program
             finally { settings.Close(); }
 
             AppSettings? saved = null;
-            settings = new(new(), Path.Combine(_output, "app-data"), value => { saved = value; return Task.FromResult<string?>(null); }, startup);
+            settings = new(new(), value => { saved = value; return Task.FromResult<string?>(null); }, startup);
             try
             {
                 settings.Show();
@@ -74,7 +74,7 @@ internal static partial class Program
             finally { settings.Close(); }
 
             var failingStartup = new FailingStartupRegistration { FailWrites = true };
-            settings = new(new(), _output, _ => Task.FromResult<string?>(null), failingStartup);
+            settings = new(new(), _ => Task.FromResult<string?>(null), failingStartup);
             try
             {
                 settings.Show();

@@ -331,7 +331,7 @@ public sealed class AppController : IDisposable
     private void ShowSettings()
     {
         if (_settingsWindow is not null) { _settingsWindow.Show(); _settingsWindow.Activate(); return; }
-        _settingsWindow = new(_settings, _repository.Root, ApplySettingsAsync, _startup);
+        _settingsWindow = new(_settings, ApplySettingsAsync, _startup);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
     }

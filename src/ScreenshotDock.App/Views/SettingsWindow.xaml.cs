@@ -12,7 +12,7 @@ public partial class SettingsWindow : Window
     private readonly IStartupRegistration _startup;
     private bool _startupReady;
     private bool _startupEnabled;
-    public SettingsWindow(AppSettings settings, string storagePath, Func<AppSettings, Task<string?>> save, IStartupRegistration? startup = null)
+    public SettingsWindow(AppSettings settings, Func<AppSettings, Task<string?>> save, IStartupRegistration? startup = null)
     {
         InitializeComponent();
         _initial = settings;
@@ -26,7 +26,6 @@ public partial class SettingsWindow : Window
         CopyBox.IsChecked = settings.AutoCopy;
         ExpandBox.IsChecked = settings.AutoExpand;
         FullscreenBox.IsChecked = settings.SuppressInFullscreen;
-        StoragePathLabel.Text = storagePath;
         try { _startupEnabled = _startup.IsEnabled; StartupBox.IsChecked = _startupEnabled; }
         catch (Exception ex) { StartupBox.IsEnabled = false; ShowError($"无法读取开机启动设置：{ex.Message}"); }
         _startupReady = true;

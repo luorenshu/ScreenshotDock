@@ -37,7 +37,7 @@ internal static partial class Program
             window.Show();
         }
 
-        var settings = new SettingsWindow(new(), repository.Root, _ => Task.FromResult<string?>(null));
+        var settings = new SettingsWindow(new(), _ => Task.FromResult<string?>(null));
         try { ShowForPreview(settings); await Task.Delay(60); SaveVisual(settings, "settings-blue.png"); }
         finally { settings.Close(); }
         var preview = new PreviewWindow(cards[0]);

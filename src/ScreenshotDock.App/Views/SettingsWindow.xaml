@@ -3,9 +3,8 @@
  Title="ScreenshotDock · 设置" Width="680" SizeToContent="Height" ResizeMode="NoResize"
  WindowStartupLocation="CenterScreen" Background="{StaticResource PageBackground}" Foreground="{StaticResource Ink}">
  <Grid Margin="28,22,28,20">
-  <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-  <StackPanel Margin="0,0,0,18"><TextBlock Text="按你的习惯截图" FontSize="25" FontWeight="SemiBold" /><TextBlock Text="ScreenshotDock  1.0   /   Capture. Keep. Drag. Share." Foreground="{StaticResource Muted}" Margin="0,7,0,0" FontSize="12" /></StackPanel>
-   <StackPanel Grid.Row="1">
+  <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+   <StackPanel>
     <TextBlock Text="截图快捷键" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,9" />
     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
      <TextBox x:Name="HotkeyBox" IsReadOnly="True" PreviewKeyDown="HotkeyKeyDown" ToolTip="点击后按下单个按键或组合键，例如 F1、F2 或 Ctrl + Shift + A" />
@@ -32,15 +31,8 @@
     <CheckBox x:Name="FullscreenBox"><TextBlock Text="全屏应用运行时暂停顶部悬停触发和自动展开" TextWrapping="Wrap" /></CheckBox>
      </StackPanel>
     </Grid>
-    <Separator />
-    <Border Background="{StaticResource Soft}" CornerRadius="10" Padding="16,13" Margin="0,2,0,0">
-     <StackPanel><TextBlock Text="本地存储 · 无需账号" FontWeight="SemiBold" />
-      <TextBlock Text="仅收纳本工具截取的图片。图片与配置保存在这台电脑，不监听其他应用复制的内容。" TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,6,0,0" />
-      <TextBlock x:Name="StoragePathLabel" TextWrapping="Wrap" FontSize="10" Foreground="{StaticResource Muted}" Margin="0,9,0,0" />
-     </StackPanel>
-    </Border>
    </StackPanel>
-  <Grid Grid.Row="2" Margin="0,18,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+  <Grid Grid.Row="1" Margin="0,18,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
    <TextBlock x:Name="ErrorLabel" Text="" Foreground="#B64A36" TextWrapping="Wrap" Margin="0,0,0,10">
     <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding Text, RelativeSource={RelativeSource Self}}" Value=""><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
    </TextBlock>

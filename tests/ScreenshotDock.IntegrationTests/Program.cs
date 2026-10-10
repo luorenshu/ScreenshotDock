@@ -190,7 +190,7 @@ internal static partial class Program
         SaveVisual(emptyDock, "dock-empty.png");
         emptyDock.Close();
 
-        var settings = new SettingsWindow(new(), root, _ => Task.FromResult<string?>(null));
+        var settings = new SettingsWindow(new(), _ => Task.FromResult<string?>(null));
         settings.Show();
         await Task.Delay(150);
         SaveVisual(settings, "settings.png");
@@ -311,7 +311,7 @@ internal static partial class Program
     private static async Task TestSingleKeySettingsAsync(string root)
     {
         AppSettings? saved = null;
-        var settings = new SettingsWindow(new(), root, value => { saved = value; return Task.FromResult<string?>(null); });
+        var settings = new SettingsWindow(new(), value => { saved = value; return Task.FromResult<string?>(null); });
         settings.Show();
         await Task.Delay(100);
         var box = (TextBox)settings.FindName("HotkeyBox");
