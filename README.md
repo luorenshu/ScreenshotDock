@@ -2,7 +2,7 @@
 
 Windows 原生截图与临时素材收纳工具。C# / .NET 10 / WPF。按照提供的产品 PRD v1.0 实现 V1.0 MVP。
 
-**Ctrl + Shift + A → 框选 → 工具栏标注 → 完成 / 复制 / 保存 → 顶部收纳。**
+**Ctrl + Shift + A → 自动识别并单击选区 / 拖动框选 → 工具栏标注 → 完成 / 复制 / 保存 → 顶部收纳。**
 
 ## 运行
 
@@ -26,6 +26,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Pin
 powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Edge
 powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Settings
 powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Annotations
+powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -SmartSelection
 powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Integration
 powershell -ExecutionPolicy Bypass -File .\scripts\publish.ps1
 ```
@@ -47,6 +48,10 @@ powershell -ExecutionPolicy Bypass -File .\scripts\publish.ps1
 - `docs`：[使用说明](docs/使用说明.md)、验收与限制。
 
 全局快捷键替换先注册新组合，冲突不会拆掉旧组合。截图前隐藏自身窗口并等待 DWM 完成更新；每个显示器独立呈现选区，但选区和最终裁剪始终使用虚拟桌面的物理像素。暂存原图与缩略图通过 GUID 定位，JSON 不控制删除路径。
+
+开始截图时，`CaptureRegionDetector` 在浮层显示前保存可见窗口的顺序、物理范围与原生子控件范围；鼠标悬停先呈现窗口或子控件预选，再通过后台 UI Automation 细化按钮、输入框等区域。直接从原窗口句柄遍历控件，避免识别到覆盖其上的截图浮层。后台查询按短暂停留防抖，限制遍历深度、节点数及等待时间；进程内只允许一个查询在运行，慢提供程序不会阻塞框选。UI Automation 独立线程要求参见 [Microsoft 线程说明](https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-threading)。没有可用控件信息时保留窗口级选区。
+
+所有显示器共享 `SmartSelectionSession`：悬停只预览，不提交选区或显示工具栏；鼠标按下时冻结预选区域，单击松开后确认，超过按屏幕缩放换算的拖动阈值则切换为自由框选。迟到或过期的后台结果不能覆盖当前预选或已经确认的选区；窗口关闭后取消更新。区域裁剪始终使用虚拟桌面物理坐标，支持负坐标与跨屏选区。`-SmartSelection` 使用专用 WPF 窗口与合成画布验证原生识别、确认、自由框选、迟到响应和实际工具栏，结果位于 `artifacts/smart-selection-verification`，不移动真实鼠标或访问系统剪贴板。
 
 选区右下方提供矩形、椭圆、箭头、画笔、框选马赛克、文字、移除标注、撤销、重做、保存、复制和完成按钮，靠近屏幕边缘时自动调整位置。所有显示器共用 `CaptureEditSession` 和 `AnnotationDocument`，标注坐标相对于选区，移动选区时保持位置，调整尺寸时裁剪超出的标注。`AnnotationRenderer` 将原始截图与标注合成到物理像素尺寸的图片，选区边框、工具栏和遮罩不进入导出结果。保存使用同目录临时文件后替换目标，失败或取消时继续编辑；暂存目录受到保护。
 

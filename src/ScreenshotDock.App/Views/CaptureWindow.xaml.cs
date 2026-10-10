@@ -29,7 +29,8 @@ public partial class CaptureWindow : Window
     public event Action? SaveRequested;
     public event Action? PinRequested;
     public CaptureEditSession Editor => _editor;
-    public CaptureWindow(DesktopFrame frame, MonitorDescriptor monitor, SelectionSession session, CaptureEditSession? editor = null)
+    public CaptureWindow(DesktopFrame frame, MonitorDescriptor monitor, SelectionSession session, CaptureEditSession? editor = null,
+        SmartSelectionSession? smartSelection = null)
     {
         _monitor = monitor;
         _monitors = DesktopEnvironment.Monitors;
@@ -51,14 +52,18 @@ public partial class CaptureWindow : Window
             [ArrowStyle.Tapered] = ArrowTaperedStyleButton, [ArrowStyle.Outline] = ArrowOutlineStyleButton,
             [ArrowStyle.Polyline] = ArrowPolylineStyleButton
         };
-        _canvas = new SelectionCanvas(frame, monitor, _editor);
+        _canvas = new SelectionCanvas(frame, monitor, _editor, smartSelection);
         Surface.Children.Insert(0, _canvas);
         _canvas.CompleteRequested += RequestCompletion;
         _editor.Changed += RefreshEditor;
         _editor.CommitTextRequested += CommitText;
         _editor.TextRequested += BeginText;
         SourceInitialized += (_, _) => DesktopEnvironment.Place(this, _monitor.Bounds);
-        Loaded += (_, _) => { DesktopEnvironment.Place(this, _monitor.Bounds); _canvas.Focus(); RefreshEditor(); };
+        Loaded += (_, _) =>
+        {
+            DesktopEnvironment.Place(this, _monitor.Bounds); _canvas.Focus(); RefreshEditor();
+            if (_monitor.Bounds.Contains(DesktopEnvironment.Cursor)) smartSelection?.Hover(DesktopEnvironment.Cursor);
+        };
         Activated += (_, _) => { if (AnnotationTextBox.Visibility != Visibility.Visible) _canvas.Focus(); };
         SizeChanged += (_, _) => RefreshEditor();
         Closed += (_, _) =>
@@ -284,25 +289,32 @@ internal sealed class SelectionCanvas : FrameworkElement
     private readonly MonitorDescriptor _monitor;
     private readonly SelectionSession _session;
     private readonly CaptureEditSession _editor;
+    private readonly SmartSelectionSession? _smartSelection;
     private readonly BitmapSource _background;
     private BitmapSource? _mosaicSource;
     private PixelRect _mosaicSelection;
     public event Action? CompleteRequested;
 
     public double PixelsPerDip => ScaleX;
-    public SelectionCanvas(DesktopFrame frame, MonitorDescriptor monitor, CaptureEditSession editor)
+    public SelectionCanvas(DesktopFrame frame, MonitorDescriptor monitor, CaptureEditSession editor, SmartSelectionSession? smartSelection)
     {
         _monitor = monitor;
         _frame = frame;
         _editor = editor;
+        _smartSelection = smartSelection;
         _session = editor.Selection;
         _background = ScreenCaptureService.Crop(frame, monitor.Bounds);
         _editor.Changed += Refresh;
+        if (_smartSelection is not null) _smartSelection.Changed += InvalidateVisual;
         Focusable = true;
         Cursor = CaptureCursors.Crosshair;
     }
 
-    public void Detach() => _editor.Changed -= Refresh;
+    public void Detach()
+    {
+        _editor.Changed -= Refresh;
+        if (_smartSelection is not null) _smartSelection.Changed -= InvalidateVisual;
+    }
     private void Refresh() { InvalidateVisual(); UpdateCursor(DesktopEnvironment.Cursor); }
     private Point Local(int x, int y) => new((x - _monitor.Bounds.X) / ScaleX, (y - _monitor.Bounds.Y) / ScaleY);
     private double ScaleX => _monitor.Bounds.Width / Math.Max(1, ActualWidth);
@@ -313,7 +325,8 @@ internal sealed class SelectionCanvas : FrameworkElement
         base.OnRender(drawing);
         var full = new Rect(0, 0, ActualWidth, ActualHeight);
         drawing.DrawImage(_background, full);
-        var selection = _session.Selection;
+        var isPreview = _session.Selection.IsEmpty && _smartSelection is { Preview.IsEmpty: false };
+        var selection = isPreview ? _smartSelection!.Preview : _session.Selection;
         var p1 = Local(selection.X, selection.Y);
         var p2 = Local(selection.Right, selection.Bottom);
         var rect = new Rect(p1, p2);
@@ -369,15 +382,17 @@ internal sealed class SelectionCanvas : FrameworkElement
             drawing.Pop();
             var selectionBrush = (Brush)FindResource("SelectionOutline");
             drawing.DrawRectangle(null, new Pen(selectionBrush, 3), rect);
-            foreach (var point in new[] { rect.TopLeft, rect.TopRight, rect.BottomLeft, rect.BottomRight,
+            if (!isPreview) foreach (var point in new[] { rect.TopLeft, rect.TopRight, rect.BottomLeft, rect.BottomRight,
                 new Point(rect.Left + rect.Width / 2, rect.Top), new Point(rect.Left + rect.Width / 2, rect.Bottom),
                 new Point(rect.Left, rect.Top + rect.Height / 2), new Point(rect.Right, rect.Top + rect.Height / 2) })
                 drawing.DrawRectangle(Brushes.White, new Pen(selectionBrush, 2), new Rect(point.X - 4, point.Y - 4, 8, 8));
             if (_monitor.Bounds.Contains(new(selection.X, selection.Y)))
-                DrawLabel(drawing, $"{selection.Width} × {selection.Height} px", Math.Clamp(rect.Left, 12, Math.Max(12, ActualWidth - 200)),
-                    rect.Top > 48 ? rect.Top - 37 : Math.Min(ActualHeight - 42, rect.Bottom + 12), 175, 30);
+                DrawLabel(drawing, $"{selection.Width} × {selection.Height} px" + (isPreview ? " · 自动识别" : ""),
+                    Math.Clamp(rect.Left, 12, Math.Max(12, ActualWidth - 230)),
+                    rect.Top > 48 ? rect.Top - 37 : Math.Min(ActualHeight - 42, rect.Bottom + 12), isPreview ? 220 : 175, 30);
         }
-        var hint = selection.IsEmpty ? "拖动鼠标选择区域    ·    Esc / 右键取消" : _editor.Tool == CaptureTool.Mosaic
+        var hint = isPreview ? "单击选中识别区域 · 拖动自由框选    |    Esc / 右键取消"
+            : selection.IsEmpty ? "移动鼠标自动识别 · 拖动自由框选    |    Esc / 右键取消" : _editor.Tool == CaptureTool.Mosaic
             ? "框选马赛克 · 拖动区域移动 · 控制点调整大小    |    Ctrl+Z 撤销"
             : _editor.Tool == CaptureTool.Select
             ? "调整选区 · 右下角工具栏标注    |    Enter 完成 · Esc / 右键取消"
@@ -399,6 +414,11 @@ internal sealed class SelectionCanvas : FrameworkElement
         base.OnMouseLeftButtonDown(e);
         if (_editor.IsBusy) { e.Handled = true; return; }
         var point = ScreenPoint(e);
+        if (_smartSelection?.Begin(point, Math.Max(SystemParameters.MinimumHorizontalDragDistance,
+            SystemParameters.MinimumVerticalDragDistance) * ScaleX) == true)
+        {
+            Focus(); CaptureMouse(); e.Handled = true; return;
+        }
         if (_editor.Tool == CaptureTool.Select && _editor.TryEditText(point, ScaleX)) { e.Handled = true; return; }
         if ((_editor.Tool != CaptureTool.Select || _session.HitTest(point, (int)(7 * ScaleX)) == SelectionAction.Move)
             && (_editor.TryBeginMosaicResize(point, ScaleX) || _editor.TryBeginMosaicMove(point, ScaleX)))
@@ -426,10 +446,12 @@ internal sealed class SelectionCanvas : FrameworkElement
         var point = ScreenPoint(e);
         if (IsMouseCaptured && e.LeftButton == MouseButtonState.Pressed)
         {
-            if (_editor.IsMovingMosaic) _editor.UpdateMosaicMove(point);
+            if (_smartSelection?.IsSelecting == true) _smartSelection.Update(point);
+            else if (_editor.IsMovingMosaic) _editor.UpdateMosaicMove(point);
             else if (_editor.IsDrawing) _editor.UpdateStroke(point);
             else _session.Update(point);
         }
+        else if (e.LeftButton == MouseButtonState.Released) _smartSelection?.Hover(point);
         UpdateCursor(point);
     }
 
@@ -463,7 +485,8 @@ internal sealed class SelectionCanvas : FrameworkElement
         base.OnMouseLeftButtonUp(e);
         if (IsMouseCaptured)
         {
-            if (_editor.IsMovingMosaic) { _editor.UpdateMosaicMove(ScreenPoint(e)); _editor.EndMosaicMove(); }
+            if (_smartSelection?.IsSelecting == true) _smartSelection.End(ScreenPoint(e));
+            else if (_editor.IsMovingMosaic) { _editor.UpdateMosaicMove(ScreenPoint(e)); _editor.EndMosaicMove(); }
             else if (_editor.IsDrawing) { _editor.UpdateStroke(ScreenPoint(e)); _editor.EndStroke(); }
             else { _session.Update(ScreenPoint(e)); _session.End(); }
             ReleaseMouseCapture();
@@ -479,6 +502,7 @@ internal sealed class SelectionCanvas : FrameworkElement
     protected override void OnLostMouseCapture(MouseEventArgs e)
     {
         base.OnLostMouseCapture(e);
+        if (_smartSelection?.IsSelecting == true) _smartSelection.CancelPointer();
         if (_editor.IsMovingMosaic) _editor.CancelMosaicMove();
         if (_editor.IsDrawing) _editor.CancelStroke();
         if (_session.Action != SelectionAction.None) _session.End();

@@ -9,6 +9,17 @@ internal static class NativeMethods
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     internal struct MonitorInfo { public int Size; public Rect Monitor, Work; public uint Flags; }
     internal delegate bool MonitorEnum(nint monitor, nint dc, ref Rect rect, nint data);
+    internal delegate bool WindowEnum(nint window, nint data);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool EnumWindows(WindowEnum callback, nint data);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool EnumChildWindows(nint window, WindowEnum callback, nint data);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] internal static extern bool IsWindowVisible(nint window);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] internal static extern bool IsIconic(nint window);
+    [DllImport("dwmapi.dll", EntryPoint = "DwmGetWindowAttribute")]
+    internal static extern int DwmGetWindowBounds(nint window, uint attribute, out Rect bounds, int size);
+    [DllImport("dwmapi.dll", EntryPoint = "DwmGetWindowAttribute")]
+    internal static extern int DwmGetWindowAttributeInt(nint window, uint attribute, out uint value, int size);
     internal delegate nint MouseHook(int code, nint message, nint data);
     [StructLayout(LayoutKind.Sequential)] internal struct MouseHookData
     {

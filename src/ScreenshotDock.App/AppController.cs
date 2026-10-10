@@ -218,10 +218,11 @@ public sealed class AppController : IDisposable
         var completion = new TaskCompletionSource<CaptureResult?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var session = new SelectionSession(frame.Bounds);
         var editor = new CaptureEditSession(session);
+        var smartSelection = new SmartSelectionSession(editor, CaptureRegionDetector.Capture(frame.Bounds));
         var finishing = false;
         foreach (var monitor in DesktopEnvironment.Monitors)
         {
-            var window = new CaptureWindow(frame, monitor, session, editor);
+            var window = new CaptureWindow(frame, monitor, session, editor, smartSelection);
             window.CancelRequested += () => completion.TrySetResult(null);
             window.CompleteRequested += () => _ = FinishAsync(window, false, false);
             window.CopyRequested += () => _ = FinishAsync(window, true, false);
@@ -262,6 +263,7 @@ public sealed class AppController : IDisposable
         {
             var result = await completion.Task;
             CloseOverlays();
+            smartSelection.Dispose();
             editor.Dispose();
             return result;
         }
