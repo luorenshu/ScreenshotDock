@@ -8,9 +8,9 @@ public sealed class CaptureEditSession : IDisposable
 {
     private readonly List<PixelPoint> _points = [];
     private ScreenshotAnnotation? _draft;
-    private ScreenshotAnnotation? _movingMosaic;
-    private PixelPoint _mosaicMoveStart;
-    private PixelRect _mosaicResizeBounds;
+    private ScreenshotAnnotation? _editingRegion;
+    private PixelPoint _regionEditStart;
+    private PixelRect _regionResizeBounds;
     private PixelRect _lastSelection;
     public SelectionSession Selection { get; }
     public AnnotationDocument Document { get; } = new();
@@ -24,11 +24,11 @@ public sealed class CaptureEditSession : IDisposable
     public ArrowStyle ArrowStyle { get; private set; }
     public bool IsBusy { get; private set; }
     public bool IsDrawing => _draft is not null;
-    public bool IsMovingMosaic => _movingMosaic is not null;
-    public SelectionAction MosaicAction { get; private set; }
-    public int? SelectedMosaicIndex { get; private set; }
-    public ScreenshotAnnotation? MosaicMovePreview { get; private set; }
-    public ScreenshotAnnotation? SelectedMosaic => MosaicMovePreview ?? (SelectedMosaicIndex is { } index
+    public bool IsEditingRegion => _editingRegion is not null;
+    public SelectionAction RegionAction { get; private set; }
+    public int? SelectedRegionIndex { get; private set; }
+    public ScreenshotAnnotation? RegionPreview { get; private set; }
+    public ScreenshotAnnotation? SelectedRegion => RegionPreview ?? (SelectedRegionIndex is { } index
         && index < Document.Items.Count ? Document.Items[index] : null);
     public string Status { get; private set; } = "";
     public ScreenshotAnnotation? Draft => _draft is not null && UsesPath(_draft)
@@ -49,8 +49,8 @@ public sealed class CaptureEditSession : IDisposable
     {
         CommitText();
         CancelStroke();
-        CancelMosaicMove();
-        SelectedMosaicIndex = null;
+        CancelRegionEdit();
+        SelectedRegionIndex = null;
         Tool = tool;
         Status = "";
         Refresh();
@@ -94,8 +94,8 @@ public sealed class CaptureEditSession : IDisposable
             var annotation = Document.Items[i];
             if (annotation.Tool != CaptureTool.Text || !AnnotationRenderer.HitTest(annotation, point, 3 * scale)) continue;
             CancelStroke();
-            CancelMosaicMove();
-            SelectedMosaicIndex = null;
+            CancelRegionEdit();
+            SelectedRegionIndex = null;
             EditingTextIndex = i;
             EditingText = annotation;
             Tool = CaptureTool.Text;
@@ -108,64 +108,67 @@ public sealed class CaptureEditSession : IDisposable
     }
     public void NotifyStyleChanged() => Refresh();
 
-    public int? HitTestMosaic(PixelPoint screenPoint, double scale)
+    public int? HitTestRegion(PixelPoint screenPoint, double scale)
     {
-        if (IsBusy || Tool is not (CaptureTool.Select or CaptureTool.Mosaic)
-            || !Selection.Selection.Contains(screenPoint)) return null;
+        if (IsBusy || !Selection.Selection.Contains(screenPoint)) return null;
         var point = Relative(screenPoint);
         for (var i = Document.Items.Count - 1; i >= 0; i--)
-            if (Document.Items[i].Tool == CaptureTool.Mosaic && AnnotationRenderer.HitTest(Document.Items[i], point, 3 * scale)) return i;
+            if (CanEditRegion(Document.Items[i]) && AnnotationRenderer.HitTestRegion(Document.Items[i], point, 3 * scale)) return i;
         return null;
     }
 
-    public bool TryBeginMosaicMove(PixelPoint screenPoint, double scale)
+    private static bool IsRegionTool(CaptureTool tool) => tool is CaptureTool.Rectangle or CaptureTool.Ellipse or CaptureTool.Mosaic;
+    private bool CanEditRegion(ScreenshotAnnotation annotation) => IsRegionTool(annotation.Tool)
+        && (Tool == CaptureTool.Select || Tool == annotation.Tool);
+
+    public bool TryBeginRegionMove(PixelPoint screenPoint, double scale)
     {
-        if (IsDrawing || IsMovingMosaic || Selection.Action != SelectionAction.None) return false;
+        if (IsDrawing || IsEditingRegion || Selection.Action != SelectionAction.None) return false;
         CommitText();
-        if (HitTestMosaic(screenPoint, scale) is not { } index) return false;
-        BeginMosaicEdit(index, SelectionAction.Move, screenPoint);
+        if (HitTestRegion(screenPoint, scale) is not { } index) return false;
+        BeginRegionEdit(index, SelectionAction.Move, screenPoint);
         return true;
     }
 
-    public SelectionAction HitTestMosaicHandle(PixelPoint screenPoint, double scale)
+    public SelectionAction HitTestRegionHandle(PixelPoint screenPoint, double scale)
     {
-        if (IsBusy || Tool is not (CaptureTool.Select or CaptureTool.Mosaic) || SelectedMosaic is not { } annotation)
+        if (IsBusy || SelectedRegion is not { } annotation || !CanEditRegion(annotation))
             return SelectionAction.None;
         var bounds = PixelRect.Between(annotation.Start, annotation.End);
         if (bounds.Intersect(new(0, 0, Selection.Selection.Width, Selection.Selection.Height)).IsEmpty) return SelectionAction.None;
-        return MosaicSelectionGeometry.HitTestHandle(bounds,
+        return RegionSelectionGeometry.HitTestHandle(bounds,
             new(screenPoint.X - Selection.Selection.X, screenPoint.Y - Selection.Selection.Y), 5 * scale);
     }
 
-    public bool TryBeginMosaicResize(PixelPoint screenPoint, double scale)
+    public bool TryBeginRegionResize(PixelPoint screenPoint, double scale)
     {
-        if (IsDrawing || IsMovingMosaic || Selection.Action != SelectionAction.None) return false;
+        if (IsDrawing || IsEditingRegion || Selection.Action != SelectionAction.None) return false;
         CommitText();
-        var action = HitTestMosaicHandle(screenPoint, scale);
-        if (action == SelectionAction.None || SelectedMosaicIndex is not { } index) return false;
-        BeginMosaicEdit(index, action, screenPoint);
+        var action = HitTestRegionHandle(screenPoint, scale);
+        if (action == SelectionAction.None || SelectedRegionIndex is not { } index) return false;
+        BeginRegionEdit(index, action, screenPoint);
         return true;
     }
 
-    private void BeginMosaicEdit(int index, SelectionAction action, PixelPoint screenPoint)
+    private void BeginRegionEdit(int index, SelectionAction action, PixelPoint screenPoint)
     {
-        SelectedMosaicIndex = index;
-        _movingMosaic = Document.Items[index];
-        MosaicMovePreview = _movingMosaic;
-        _mosaicMoveStart = screenPoint;
-        _mosaicResizeBounds = PixelRect.Between(_movingMosaic.Start, _movingMosaic.End)
+        SelectedRegionIndex = index;
+        _editingRegion = Document.Items[index];
+        RegionPreview = _editingRegion;
+        _regionEditStart = screenPoint;
+        _regionResizeBounds = PixelRect.Between(_editingRegion.Start, _editingRegion.End)
             .Intersect(new(0, 0, Selection.Selection.Width, Selection.Selection.Height));
-        MosaicAction = action;
+        RegionAction = action;
         Status = "";
         Refresh();
     }
 
-    public void UpdateMosaicMove(PixelPoint screenPoint)
+    public void UpdateRegionEdit(PixelPoint screenPoint)
     {
-        if (_movingMosaic is not { } original) return;
-        if (MosaicAction != SelectionAction.Move)
+        if (_editingRegion is not { } original) return;
+        if (RegionAction != SelectionAction.Move)
         {
-            UpdateMosaicResize(original, screenPoint);
+            UpdateRegionResize(original, screenPoint);
             Refresh();
             return;
         }
@@ -174,48 +177,48 @@ public sealed class CaptureEditSession : IDisposable
         // A previously resized capture may clip a larger annotation; keep its size and allow its visible part to move.
         var x1 = -bounds.X; var x2 = selection.Width - bounds.Right;
         var y1 = -bounds.Y; var y2 = selection.Height - bounds.Bottom;
-        var dx = ClampMosaicOffset(screenPoint.X - _mosaicMoveStart.X, x1, x2);
-        var dy = ClampMosaicOffset(screenPoint.Y - _mosaicMoveStart.Y, y1, y2);
-        MosaicMovePreview = original with { Start = new(original.Start.X + dx, original.Start.Y + dy),
+        var dx = ClampRegionOffset(screenPoint.X - _regionEditStart.X, x1, x2);
+        var dy = ClampRegionOffset(screenPoint.Y - _regionEditStart.Y, y1, y2);
+        RegionPreview = original with { Start = new(original.Start.X + dx, original.Start.Y + dy),
             End = new(original.End.X + dx, original.End.Y + dy) };
         Refresh();
     }
 
-    private void UpdateMosaicResize(ScreenshotAnnotation original, PixelPoint screenPoint)
+    private void UpdateRegionResize(ScreenshotAnnotation original, PixelPoint screenPoint)
     {
-        var bounds = _mosaicResizeBounds;
+        var bounds = _regionResizeBounds;
         var selection = Selection.Selection;
-        var dx = screenPoint.X - _mosaicMoveStart.X;
-        var dy = screenPoint.Y - _mosaicMoveStart.Y;
+        var dx = screenPoint.X - _regionEditStart.X;
+        var dy = screenPoint.Y - _regionEditStart.Y;
         var left = bounds.X; var right = bounds.Right;
         var top = bounds.Y; var bottom = bounds.Bottom;
-        if (MosaicAction.HasFlag(SelectionAction.Left)) left = Math.Clamp(left + dx, 0, right - 1);
-        if (MosaicAction.HasFlag(SelectionAction.Right)) right = Math.Clamp(right + dx, left + 1, selection.Width);
-        if (MosaicAction.HasFlag(SelectionAction.Top)) top = Math.Clamp(top + dy, 0, bottom - 1);
-        if (MosaicAction.HasFlag(SelectionAction.Bottom)) bottom = Math.Clamp(bottom + dy, top + 1, selection.Height);
-        MosaicMovePreview = original with
+        if (RegionAction.HasFlag(SelectionAction.Left)) left = Math.Clamp(left + dx, 0, right - 1);
+        if (RegionAction.HasFlag(SelectionAction.Right)) right = Math.Clamp(right + dx, left + 1, selection.Width);
+        if (RegionAction.HasFlag(SelectionAction.Top)) top = Math.Clamp(top + dy, 0, bottom - 1);
+        if (RegionAction.HasFlag(SelectionAction.Bottom)) bottom = Math.Clamp(bottom + dy, top + 1, selection.Height);
+        RegionPreview = original with
         {
             Start = new(original.Start.X > original.End.X ? right : left, original.Start.Y > original.End.Y ? bottom : top),
             End = new(original.Start.X > original.End.X ? left : right, original.Start.Y > original.End.Y ? top : bottom)
         };
     }
 
-    public void EndMosaicMove()
+    public void EndRegionEdit()
     {
-        var index = SelectedMosaicIndex;
-        var original = _movingMosaic;
-        var preview = MosaicMovePreview;
-        _movingMosaic = null;
-        MosaicMovePreview = null;
-        MosaicAction = SelectionAction.None;
+        var index = SelectedRegionIndex;
+        var original = _editingRegion;
+        var preview = RegionPreview;
+        _editingRegion = null;
+        RegionPreview = null;
+        RegionAction = SelectionAction.None;
         if (index is { } i && original is not null && preview is not null && i < Document.Items.Count
-            && Document.Items[i] == original && Document.ReplaceAt(i, preview)) SelectedMosaicIndex = i;
+            && Document.Items[i] == original && Document.ReplaceAt(i, preview)) SelectedRegionIndex = i;
         Refresh();
     }
 
-    public void CancelMosaicMove() { ClearMosaicEdit(); Refresh(); }
-    private void ClearMosaicEdit() { _movingMosaic = null; MosaicMovePreview = null; MosaicAction = SelectionAction.None; }
-    private static int ClampMosaicOffset(int offset, int minimum, int maximum) => minimum <= maximum
+    public void CancelRegionEdit() { ClearRegionEdit(); Refresh(); }
+    private void ClearRegionEdit() { _editingRegion = null; RegionPreview = null; RegionAction = SelectionAction.None; }
+    private static int ClampRegionOffset(int offset, int minimum, int maximum) => minimum <= maximum
         ? Math.Clamp(offset, minimum, maximum) : Math.Clamp(offset, Math.Min(maximum, 0), Math.Max(minimum, 0));
 
     public PixelPoint Relative(PixelPoint screenPoint)
@@ -228,8 +231,8 @@ public sealed class CaptureEditSession : IDisposable
     {
         CommitText();
         CancelStroke();
-        CancelMosaicMove();
-        SelectedMosaicIndex = null;
+        CancelRegionEdit();
+        SelectedRegionIndex = null;
         if (Selection.HitTest(point, tolerance) == SelectionAction.New) Document.Reset();
         Selection.Begin(point, tolerance);
     }
@@ -238,8 +241,8 @@ public sealed class CaptureEditSession : IDisposable
     {
         if (IsBusy || Selection.Selection.IsEmpty || !Selection.Selection.Contains(screenPoint)) return;
         CommitText();
-        CancelMosaicMove();
-        SelectedMosaicIndex = null;
+        CancelRegionEdit();
+        SelectedRegionIndex = null;
         var point = Relative(screenPoint);
         if (Tool == CaptureTool.Text)
         {
@@ -273,8 +276,8 @@ public sealed class CaptureEditSession : IDisposable
         var draft = Draft;
         _draft = null;
         _points.Clear();
-        if (draft is not null && Document.Add(draft) && draft.Tool == CaptureTool.Mosaic)
-            SelectedMosaicIndex = Document.Items.Count - 1;
+        if (draft is not null && Document.Add(draft) && IsRegionTool(draft.Tool))
+            SelectedRegionIndex = Document.Items.Count - 1;
         Refresh();
     }
     public void CancelStroke() { _draft = null; _points.Clear(); Refresh(); }
@@ -282,8 +285,8 @@ public sealed class CaptureEditSession : IDisposable
         || annotation.Tool == CaptureTool.Arrow && annotation.ArrowStyle == ArrowStyle.Polyline;
     private void DocumentChanged()
     {
-        ClearMosaicEdit();
-        SelectedMosaicIndex = null;
+        ClearRegionEdit();
+        SelectedRegionIndex = null;
         Refresh();
     }
     private void SelectionChanged()
@@ -291,8 +294,8 @@ public sealed class CaptureEditSession : IDisposable
         if (_lastSelection != Selection.Selection)
         {
             _lastSelection = Selection.Selection;
-            ClearMosaicEdit();
-            SelectedMosaicIndex = null;
+            ClearRegionEdit();
+            SelectedRegionIndex = null;
         }
         Refresh();
     }

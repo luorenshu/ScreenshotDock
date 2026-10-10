@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -29,7 +30,8 @@ internal static partial class Program
         var sourceBytes = ScreenCaptureService.EncodePng(source);
         var first = new PinnedImageWindow(source, original, () => pointer);
         var second = new PinnedImageWindow(source, new(original.X + 520, original.Y + 160, 300, 180));
-        first.Show(); second.Show(); first.Activate();
+        first.Show(); second.Show(); ActivatePinFixture(first);
+        DesktopEnvironment.MakeClickThrough(first); DesktopEnvironment.MakeClickThrough(second);
         await Task.Delay(40);
 
         PixelRect ImageBounds(PinnedImageWindow window)
@@ -111,15 +113,15 @@ internal static partial class Program
             first.Hide(); first.Show(); await Task.Delay(20);
             Check(ImageBounds(first) == afterCaptureLoss, "Hiding and restoring a resized pin preserves its size and position");
 
-            first.Activate(); await Task.Delay(20);
+            ActivatePinFixture(first); await Task.Delay(20);
             var active = SaveVisual(first, "pinned-resized-blue-shadow.png");
-            second.Activate(); await Task.Delay(20);
+            ActivatePinFixture(second); await Task.Delay(20);
             var inactive = SaveVisual(first, "pinned-resized-white-shadow.png");
             var shadow = Pixel(inactive, 6, 40);
             Check(BlueAt(active, 6, 40) && shadow[3] > 0 && shadow[0] > 240 && shadow[1] > 240 && shadow[2] > 240,
                 "A resized pin keeps the blue selected shadow and the white unselected shadow");
 
-            first.Activate(); pointer = new(afterCaptureLoss.Right - 1, afterCaptureLoss.Y + afterCaptureLoss.Height / 2); Button(true);
+            ActivatePinFixture(first); pointer = new(afterCaptureLoss.Right - 1, afterCaptureLoss.Y + afterCaptureLoss.Height / 2); Button(true);
             var escape = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(first)!, Environment.TickCount, Key.Escape)
                 { RoutedEvent = Keyboard.PreviewKeyDownEvent };
             first.RaiseEvent(escape);
@@ -128,4 +130,8 @@ internal static partial class Program
         }
         finally { first.Close(); second.Close(); SetForegroundWindow(foreground); }
     }
+
+    // Select only a window belonging to this test's UI thread, even when Windows denies foreground activation.
+    private static void ActivatePinFixture(Window window) => SetActiveWindow(new WindowInteropHelper(window).Handle);
+    [DllImport("user32.dll")] private static extern nint SetActiveWindow(nint window);
 }

@@ -42,6 +42,7 @@ internal static partial class Program
 
     private static async Task RunAnnotationFeatureTestsAsync()
     {
+        await RunShapeEditChecksAsync();
         var source = PixelPattern(93, 67);
         var frame = new DesktopFrame(source, new(-93, -67, 93, 67));
         var mosaic = new ScreenshotAnnotation(CaptureTool.Mosaic, new(5, 7), new(85, 59), 0, 5, MosaicBlockSize: 16);
@@ -112,27 +113,27 @@ internal static partial class Program
                 "Small outlined mosaic handles appear in the editor and are excluded from export");
 
             var resizeCorner = new PixelPoint(selection.X + 550, selection.Y + 160);
-            Check(editor.TryBeginMosaicResize(resizeCorner, monitor.Scale), "A selected mosaic exposes its bottom-right resize handle in the editor");
-            editor.UpdateMosaicMove(new(resizeCorner.X + 80, resizeCorner.Y + 55));
+            Check(editor.TryBeginRegionResize(resizeCorner, monitor.Scale), "A selected mosaic exposes its bottom-right resize handle in the editor");
+            editor.UpdateRegionEdit(new(resizeCorner.X + 80, resizeCorner.Y + 55));
             await Task.Delay(30);
             var resizedVisual = SaveVisual(window, "mosaic-resizing.png");
             SaveAnnotationPreview(resizedVisual, selection, monitor, "mosaic-resizing-preview.png");
-            var resizedExport = AnnotationRenderer.Render(visualFrame, selection, [editor.MosaicMovePreview!]);
+            var resizedExport = AnnotationRenderer.Render(visualFrame, selection, [editor.RegionPreview!]);
             Check(Pixel(resizedVisual, selection.X - monitor.Bounds.X + 590, selection.Y - monitor.Bounds.Y + 185)
                 .SequenceEqual(Pixel(resizedExport, 590, 185)), "Live resizing extends mosaic coverage using the same pixels as image export");
             window.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window)!,
                 Environment.TickCount, Key.Escape) { RoutedEvent = Keyboard.KeyDownEvent });
-            Check(!editor.IsMovingMosaic && editor.Document.Items[0].End == new PixelPoint(550, 160) && window.IsVisible,
+            Check(!editor.IsEditingRegion && editor.Document.Items[0].End == new PixelPoint(550, 160) && window.IsVisible,
                 "Esc cancels a mosaic resize while keeping the screenshot active");
 
             var originalMosaic = editor.Document.Items[0];
             var movePoint = new PixelPoint(selection.X + 320, selection.Y + 120);
-            Check(editor.TryBeginMosaicMove(movePoint, monitor.Scale), "An existing mosaic can be selected for dragging from the toolbar tool");
-            editor.UpdateMosaicMove(new(movePoint.X + 80, movePoint.Y));
+            Check(editor.TryBeginRegionMove(movePoint, monitor.Scale), "An existing mosaic can be selected for dragging from the toolbar tool");
+            editor.UpdateRegionEdit(new(movePoint.X + 80, movePoint.Y));
             await Task.Delay(30);
             var movingVisual = SaveVisual(window, "mosaic-moving.png");
             SaveAnnotationPreview(movingVisual, selection, monitor, "mosaic-moving-preview.png");
-            var movingExport = AnnotationRenderer.Render(visualFrame, selection, [editor.MosaicMovePreview!]);
+            var movingExport = AnnotationRenderer.Render(visualFrame, selection, [editor.RegionPreview!]);
             Check(Pixel(movingVisual, selection.X - monitor.Bounds.X + 260, selection.Y - monitor.Bounds.Y + 115)
                 .SequenceEqual(Pixel(movingExport, 260, 115)) && Pixel(movingVisual,
                 selection.X - monitor.Bounds.X + 180, selection.Y - monitor.Bounds.Y + 115)
@@ -140,20 +141,20 @@ internal static partial class Program
                 "Dragging updates the live mosaic at its new position and restores the original pixels at its old position");
             window.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window)!,
                 Environment.TickCount, Key.Escape) { RoutedEvent = Keyboard.KeyDownEvent });
-            Check(!editor.IsMovingMosaic && editor.Document.Items[0] == originalMosaic && window.IsVisible,
+            Check(!editor.IsEditingRegion && editor.Document.Items[0] == originalMosaic && window.IsVisible,
                 "Esc cancels a mosaic move without cancelling the screenshot or changing its annotation");
 
             var copyMoveCommitted = false;
-            void ObserveMove() => copyMoveCommitted = !editor.IsMovingMosaic && editor.Document.Items[0].Start == new PixelPoint(230, 85);
+            void ObserveMove() => copyMoveCommitted = !editor.IsEditingRegion && editor.Document.Items[0].Start == new PixelPoint(230, 85);
             window.CopyRequested += ObserveMove;
-            editor.TryBeginMosaicMove(movePoint, monitor.Scale); editor.UpdateMosaicMove(new(movePoint.X + 80, movePoint.Y));
+            editor.TryBeginRegionMove(movePoint, monitor.Scale); editor.UpdateRegionEdit(new(movePoint.X + 80, movePoint.Y));
             ClickEditor(window, "CopyCaptureButton"); window.CopyRequested -= ObserveMove;
             Check(copyMoveCommitted, "Completing a capture commits an in-progress mosaic move before image synthesis");
             ClickEditor(window, "UndoButton");
             Check(editor.Document.Items[0] == originalMosaic, "Toolbar undo restores a committed mosaic move in one step");
 
             // Retain an actual WPF preview showing the final checker icon and selected dashed boundary.
-            editor.TryBeginMosaicMove(movePoint, monitor.Scale); editor.EndMosaicMove();
+            editor.TryBeginRegionMove(movePoint, monitor.Scale); editor.EndRegionEdit();
             await Task.Delay(30);
             SaveAnnotationPreview(SaveVisual(window, "mosaic-selected.png"), selection, monitor, "mosaic-toolbar-preview.png");
 
@@ -252,13 +253,13 @@ internal static partial class Program
         var topLayer = new ScreenshotAnnotation(CaptureTool.Rectangle, new(190, 100), new(225, 140), 0xFFFF4D4F, 5);
         editor.Document.Add(topLayer);
         var anchor = new PixelPoint(bounds.X + 40, bounds.Y + 40);
-        Check(editor.TryBeginMosaicMove(anchor, 1.5), "Mosaic dragging accepts negative desktop coordinates at 150 percent scaling");
-        editor.UpdateMosaicMove(new(anchor.X + 5, anchor.Y + 12));
-        editor.UpdateMosaicMove(new(anchor.X + 25, anchor.Y + 35));
+        Check(editor.TryBeginRegionMove(anchor, 1.5), "Mosaic dragging accepts negative desktop coordinates at 150 percent scaling");
+        editor.UpdateRegionEdit(new(anchor.X + 5, anchor.Y + 12));
+        editor.UpdateRegionEdit(new(anchor.X + 25, anchor.Y + 35));
         var moved = original with { Start = new(45, 55), End = new(115, 105) };
-        Check(editor.MosaicMovePreview == moved && editor.Document.Items[0] == original,
+        Check(editor.RegionPreview == moved && editor.Document.Items[0] == original,
             "Drag previews retain physical size and particle strength without mutating committed history");
-        editor.EndMosaicMove();
+        editor.EndRegionEdit();
         Check(editor.Document.Items.Count == 2 && editor.Document.Items[0] == moved && editor.Document.Items[1] == topLayer,
             "Releasing a mosaic drag replaces its original layer without reordering other annotations");
         var source = PixelPattern(240, 160);
@@ -272,41 +273,41 @@ internal static partial class Program
         Check(editor.Document.Items[0] == moved, "Redo restores the moved mosaic with its original particle size");
         editor.SetTool(CaptureTool.Select);
         var movedAnchor = new PixelPoint(bounds.X + 65, bounds.Y + 75);
-        Check(editor.TryBeginMosaicMove(movedAnchor, 1.5), "The select tool can drag an existing mosaic without moving the capture selection");
-        editor.EndMosaicMove(); editor.Document.Undo();
+        Check(editor.TryBeginRegionMove(movedAnchor, 1.5), "The select tool can drag an existing mosaic without moving the capture selection");
+        editor.EndRegionEdit(); editor.Document.Undo();
         Check(editor.Document.Items[0] == original && selection.Selection == bounds,
             "Clicking a mosaic without moving it leaves undo history and the capture position unchanged");
         editor.Document.Redo();
-        editor.TryBeginMosaicMove(movedAnchor, 1.5); editor.UpdateMosaicMove(new(movedAnchor.X + 10, movedAnchor.Y + 5)); editor.CancelMosaicMove();
-        Check(!editor.IsMovingMosaic && editor.Document.Items[0] == moved && editor.SelectedMosaic == moved,
+        editor.TryBeginRegionMove(movedAnchor, 1.5); editor.UpdateRegionEdit(new(movedAnchor.X + 10, movedAnchor.Y + 5)); editor.CancelRegionEdit();
+        Check(!editor.IsEditingRegion && editor.Document.Items[0] == moved && editor.SelectedRegion == moved,
             "Cancelling a drag removes its preview and retains the selected original rectangle");
-        editor.TryBeginMosaicMove(movedAnchor, 1.5); editor.UpdateMosaicMove(new(-1000, -1000));
-        Check(editor.MosaicMovePreview is { Start: { X: 0, Y: 0 }, End: { X: 70, Y: 50 } },
+        editor.TryBeginRegionMove(movedAnchor, 1.5); editor.UpdateRegionEdit(new(-1000, -1000));
+        Check(editor.RegionPreview is { Start: { X: 0, Y: 0 }, End: { X: 70, Y: 50 } },
             "Dragging beyond the top and left edges clamps the whole rectangle without shrinking it");
-        editor.UpdateMosaicMove(new(1000, 1000));
-        Check(editor.MosaicMovePreview is { Start: { X: 170, Y: 110 }, End: { X: 240, Y: 160 } },
+        editor.UpdateRegionEdit(new(1000, 1000));
+        Check(editor.RegionPreview is { Start: { X: 170, Y: 110 }, End: { X: 240, Y: 160 } },
             "Dragging beyond the right and bottom edges clamps the whole rectangle without shrinking it");
-        editor.CancelMosaicMove();
+        editor.CancelRegionEdit();
         var overlap = moved with { Start = new(50, 60), End = new(110, 100), MosaicBlockSize = 8 };
-        editor.Document.Add(overlap); editor.TryBeginMosaicMove(movedAnchor, 1.5);
-        Check(editor.SelectedMosaicIndex == 2 && editor.SelectedMosaic == overlap,
+        editor.Document.Add(overlap); editor.TryBeginRegionMove(movedAnchor, 1.5);
+        Check(editor.SelectedRegionIndex == 2 && editor.SelectedRegion == overlap,
             "Overlapping mosaic regions select the highest mosaic layer under the pointer");
-        editor.CancelMosaicMove(); editor.Document.RemoveAt(2);
+        editor.CancelRegionEdit(); editor.Document.RemoveAt(2);
         var reversed = moved with { Start = moved.End, End = moved.Start };
-        editor.Document.ReplaceAt(0, reversed); editor.TryBeginMosaicMove(movedAnchor, 1.5);
-        editor.UpdateMosaicMove(new(movedAnchor.X + 10, movedAnchor.Y + 5)); editor.EndMosaicMove();
+        editor.Document.ReplaceAt(0, reversed); editor.TryBeginRegionMove(movedAnchor, 1.5);
+        editor.UpdateRegionEdit(new(movedAnchor.X + 10, movedAnchor.Y + 5)); editor.EndRegionEdit();
         Check(editor.Document.Items[0] == reversed with { Start = new(125, 110), End = new(55, 60) },
             "Reverse-drawn mosaics preserve endpoint orientation and rectangle dimensions when moved");
         editor.SetBusy(true);
-        Check(!editor.TryBeginMosaicMove(movedAnchor, 1.5), "Busy captures reject mosaic moves");
+        Check(!editor.TryBeginRegionMove(movedAnchor, 1.5), "Busy captures reject mosaic moves");
         editor.SetBusy(false); editor.SetTool(CaptureTool.Pen);
-        Check(!editor.TryBeginMosaicMove(movedAnchor, 1.5), "Other drawing tools keep their drawing behavior over existing mosaics");
-        editor.SetTool(CaptureTool.Mosaic); editor.TryBeginMosaicMove(movedAnchor, 1.5); editor.Document.Reset();
-        Check(!editor.IsMovingMosaic && editor.SelectedMosaic is null, "Document changes clear stale mosaic selection and drag previews");
-        editor.Document.Add(original); editor.TryBeginMosaicMove(anchor, 1.5);
+        Check(!editor.TryBeginRegionMove(movedAnchor, 1.5), "Other drawing tools keep their drawing behavior over existing mosaics");
+        editor.SetTool(CaptureTool.Mosaic); editor.TryBeginRegionMove(movedAnchor, 1.5); editor.Document.Reset();
+        Check(!editor.IsEditingRegion && editor.SelectedRegion is null, "Document changes clear stale mosaic selection and drag previews");
+        editor.Document.Add(original); editor.TryBeginRegionMove(anchor, 1.5);
         selection.SetSelection(new(bounds.X, bounds.Y, 60, 40));
-        Check(!editor.IsMovingMosaic && editor.SelectedMosaic is null, "Changing the capture selection cancels an outstanding mosaic move safely");
-        editor.TryBeginMosaicMove(anchor, 1.5); editor.UpdateMosaicMove(new(-1000, -1000)); editor.EndMosaicMove();
+        Check(!editor.IsEditingRegion && editor.SelectedRegion is null, "Changing the capture selection cancels an outstanding mosaic move safely");
+        editor.TryBeginRegionMove(anchor, 1.5); editor.UpdateRegionEdit(new(-1000, -1000)); editor.EndRegionEdit();
         Check(PixelRect.Between(editor.Document.Items[0].Start, editor.Document.Items[0].End) is { Width: 70, Height: 50 }
             && AnnotationRenderer.Render(frame, selection.Selection, editor.Document.Items).PixelWidth == 60,
             "Mosaics clipped by a smaller capture remain movable with their size preserved and export clipped correctly");
@@ -321,17 +322,17 @@ internal static partial class Program
         PixelPoint Screen(int x, int y) => new(bounds.X + x, bounds.Y + y);
         DrawEditorStroke(editor, Screen(20, 20), Screen(100, 80), 1.5);
         var original = editor.Document.Items[0];
-        void Select() { editor.TryBeginMosaicMove(Screen(55, 50), 1.5); editor.EndMosaicMove(); }
-        Check(editor.HitTestMosaicHandle(Screen(20, 20), 1.5) == (SelectionAction.Left | SelectionAction.Top)
-            && editor.HitTestMosaicHandle(Screen(100, 50), 1.5) == SelectionAction.Right
-            && editor.HitTestMosaicHandle(Screen(55, 50), 1.5) == SelectionAction.None,
+        void Select() { editor.TryBeginRegionMove(Screen(55, 50), 1.5); editor.EndRegionEdit(); }
+        Check(editor.HitTestRegionHandle(Screen(20, 20), 1.5) == (SelectionAction.Left | SelectionAction.Top)
+            && editor.HitTestRegionHandle(Screen(100, 50), 1.5) == SelectionAction.Right
+            && editor.HitTestRegionHandle(Screen(55, 50), 1.5) == SelectionAction.None,
             "Corner and midpoint resize handles are distinct from dragging the mosaic interior");
-        Check(editor.TryBeginMosaicResize(Screen(20, 20), 1.5), "Mosaic resize handles work with negative coordinates and 150 percent scaling");
-        editor.UpdateMosaicMove(Screen(10, 15)); editor.UpdateMosaicMove(Screen(5, 10));
+        Check(editor.TryBeginRegionResize(Screen(20, 20), 1.5), "Mosaic resize handles work with negative coordinates and 150 percent scaling");
+        editor.UpdateRegionEdit(Screen(10, 15)); editor.UpdateRegionEdit(Screen(5, 10));
         var expanded = original with { Start = new(5, 10) };
-        Check(editor.MosaicMovePreview == expanded && editor.Document.Items[0] == original,
+        Check(editor.RegionPreview == expanded && editor.Document.Items[0] == original,
             "Corner resizing keeps the opposite corner and particle strength fixed while previewing without history changes");
-        editor.EndMosaicMove(); editor.Document.Undo();
+        editor.EndRegionEdit(); editor.Document.Undo();
         Check(editor.Document.Items[0] == original, "One undo restores the entire corner resize including all preview updates");
         editor.Document.Redo();
         Check(editor.Document.Items[0] == expanded, "Redo restores a resized mosaic's bounds and particle strength");
@@ -346,41 +347,41 @@ internal static partial class Program
         foreach (var resize in sideResults)
         {
             Select();
-            if (!editor.TryBeginMosaicResize(resize.Anchor, 1.5)) throw new InvalidOperationException("Midpoint handle could not begin resizing.");
-            editor.UpdateMosaicMove(resize.Target); editor.EndMosaicMove();
+            if (!editor.TryBeginRegionResize(resize.Anchor, 1.5)) throw new InvalidOperationException("Midpoint handle could not begin resizing.");
+            editor.UpdateRegionEdit(resize.Target); editor.EndRegionEdit();
             if (editor.Document.Items[0] != resize.Expected) throw new InvalidOperationException("Midpoint resizing changed an unrelated edge or style.");
             editor.Document.Undo();
         }
         Check(editor.Document.Items[0] == original, "All four midpoint handles resize only their corresponding edge");
-        Select(); editor.TryBeginMosaicResize(Screen(100, 80), 1.5); editor.UpdateMosaicMove(Screen(1000, 1000));
-        Check(editor.MosaicMovePreview is { Start: { X: 20, Y: 20 }, End: { X: 160, Y: 110 } },
+        Select(); editor.TryBeginRegionResize(Screen(100, 80), 1.5); editor.UpdateRegionEdit(Screen(1000, 1000));
+        Check(editor.RegionPreview is { Start: { X: 20, Y: 20 }, End: { X: 160, Y: 110 } },
             "Corner expansion stops at the capture's right and bottom edges");
-        editor.UpdateMosaicMove(Screen(-1000, -1000));
-        Check(editor.MosaicMovePreview is { Start: { X: 20, Y: 20 }, End: { X: 21, Y: 21 } },
+        editor.UpdateRegionEdit(Screen(-1000, -1000));
+        Check(editor.RegionPreview is { Start: { X: 20, Y: 20 }, End: { X: 21, Y: 21 } },
             "Shrinking past the opposite corner retains a valid one-pixel minimum region");
-        editor.CancelMosaicMove();
-        Select(); editor.TryBeginMosaicResize(Screen(20, 20), 1.5); editor.UpdateMosaicMove(Screen(-1000, -1000));
-        Check(editor.MosaicMovePreview is { Start: { X: 0, Y: 0 }, End: { X: 100, Y: 80 } },
+        editor.CancelRegionEdit();
+        Select(); editor.TryBeginRegionResize(Screen(20, 20), 1.5); editor.UpdateRegionEdit(Screen(-1000, -1000));
+        Check(editor.RegionPreview is { Start: { X: 0, Y: 0 }, End: { X: 100, Y: 80 } },
             "Corner expansion stops at the capture's left and top edges");
-        editor.CancelMosaicMove();
-        Check(editor.Document.Items[0] == original && editor.MosaicAction == SelectionAction.None,
+        editor.CancelRegionEdit();
+        Check(editor.Document.Items[0] == original && editor.RegionAction == SelectionAction.None,
             "Cancelling a resize restores original coverage and clears the resize action");
-        Select(); editor.TryBeginMosaicResize(Screen(100, 80), 1.5); editor.EndMosaicMove(); editor.Document.Undo();
+        Select(); editor.TryBeginRegionResize(Screen(100, 80), 1.5); editor.EndRegionEdit(); editor.Document.Undo();
         Check(editor.Document.Items.Count == 0, "Clicking a resize handle without changing bounds creates no additional undo step");
         editor.Document.Redo();
         var reversed = original with { Start = original.End, End = original.Start };
         editor.Document.ReplaceAt(0, reversed); Select();
-        editor.TryBeginMosaicResize(Screen(100, 80), 1.5); editor.UpdateMosaicMove(Screen(120, 90)); editor.EndMosaicMove();
+        editor.TryBeginRegionResize(Screen(100, 80), 1.5); editor.UpdateRegionEdit(Screen(120, 90)); editor.EndRegionEdit();
         Check(editor.Document.Items[0] == reversed with { Start = new(120, 90) },
             "Reverse-drawn mosaics resize the visual corner while preserving endpoint orientation");
-        editor.Document.ReplaceAt(0, original); Select(); editor.TryBeginMosaicResize(Screen(20, 20), 1.5);
-        editor.UpdateMosaicMove(Screen(50, 40)); editor.EndMosaicMove();
+        editor.Document.ReplaceAt(0, original); Select(); editor.TryBeginRegionResize(Screen(20, 20), 1.5);
+        editor.UpdateRegionEdit(Screen(50, 40)); editor.EndRegionEdit();
         var source = PixelPattern(160, 110);
         var image = AnnotationRenderer.Render(new(source, bounds), bounds, editor.Document.Items);
         Check(Pixel(image, 30, 30).SequenceEqual(Pixel(source, 30, 30)) && Pixel(image, 55, 55).SequenceEqual(Pixel(image, 56, 56)),
             "Shrinking mosaic restores uncovered pixels and keeps the resized region pixelated in exports");
-        editor.SetTool(CaptureTool.Select); Select(); editor.TryBeginMosaicResize(Screen(100, 80), 1.5);
-        editor.UpdateMosaicMove(Screen(115, 95)); editor.EndMosaicMove();
+        editor.SetTool(CaptureTool.Select); Select(); editor.TryBeginRegionResize(Screen(100, 80), 1.5);
+        editor.UpdateRegionEdit(Screen(115, 95)); editor.EndRegionEdit();
         Check(selection.Selection == bounds && editor.Document.Items[0].End == new PixelPoint(115, 95),
             "The select tool can resize mosaic handles while keeping the screenshot selection fixed");
     }
@@ -476,9 +477,17 @@ internal static partial class Program
                 window.Editor.Selection.SetSelection(selection);
                 ClickEditor(window, "MosaicToolButton");
                 DrawEditorStroke(window.Editor, new(selection.X + 30, selection.Y + 30), new(selection.X + 250, selection.Y + 110));
+                var editor = window.Editor;
+                PixelPoint Screen(int x, int y) => new(selection.X + x, selection.Y + y);
+                ClickEditor(window, "RectangleToolButton"); DrawEditorStroke(editor, Screen(300, 35), Screen(490, 120));
+                editor.TryBeginRegionMove(Screen(390, 80), monitor.Scale); editor.UpdateRegionEdit(Screen(415, 100)); editor.EndRegionEdit();
+                editor.TryBeginRegionResize(Screen(515, 97), monitor.Scale); editor.UpdateRegionEdit(Screen(525, 97)); editor.EndRegionEdit();
+                ClickEditor(window, "EllipseToolButton"); DrawEditorStroke(editor, Screen(280, 170), Screen(400, 240));
+                editor.TryBeginRegionMove(Screen(340, 205), monitor.Scale); editor.UpdateRegionEdit(Screen(320, 195)); editor.EndRegionEdit();
+                editor.TryBeginRegionResize(Screen(380, 230), monitor.Scale); editor.UpdateRegionEdit(Screen(400, 240)); editor.EndRegionEdit();
                 ClickEditor(window, "TextToolButton"); window.Editor.BeginStroke(new(selection.X + 35, selection.Y + 150), monitor.Scale);
                 ((TextBox)window.FindName("AnnotationTextBox")).Text = "首次标注"; window.CommitText();
-                var text = window.Editor.Document.Items[1];
+                var text = window.Editor.Document.Items[^1];
                 window.Editor.TryEditText(new(selection.X + text.Start.X + 2, selection.Y + text.Start.Y + 2), monitor.Scale);
                 ((TextBox)window.FindName("AnnotationTextBox")).Text = action == "SaveCaptureButton" ? "修改后的保存文字" : "修改后的贴图文字";
                 ClickEditor(window, action);
@@ -488,6 +497,8 @@ internal static partial class Program
                 Check(retained.PixelWidth == 540 && retained.PixelHeight == 270 && Pixel(retained, 50, 50).SequenceEqual(Pixel(retained, 59, 59)),
                     "Full capture pipeline preserves physical dimensions and mosaic blocks: " + action);
                 Check(RedAtSomeText(retained), "Full capture pipeline commits pending Chinese reedited text: " + action);
+                Check(RedAt(retained, 525, 95) && RedAt(retained, 330, 160),
+                    "Full capture pipeline includes the moved and resized rectangle and ellipse: " + action);
                 if (action == "SaveCaptureButton")
                     Check(File.ReadAllBytes(destination).SequenceEqual(File.ReadAllBytes(repository.GetImagePath(repository.Items[0].Id))),
                         "Saved file and retained screenshot contain identical mosaic and edited-text pixels");

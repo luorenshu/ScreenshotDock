@@ -107,6 +107,11 @@ public static class AnnotationRenderer
         return Geometry(annotation).StrokeContains(new Pen(Brushes.Black, annotation.Thickness + tolerance * 2), Point(point));
     }
 
+    public static bool HitTestRegion(ScreenshotAnnotation annotation, PixelPoint point, double tolerance) =>
+        annotation.Tool == CaptureTool.Mosaic ? HitTest(annotation, point, tolerance)
+            : annotation.Tool is CaptureTool.Rectangle or CaptureTool.Ellipse
+                && (Geometry(annotation).FillContains(Point(point)) || HitTest(annotation, point, tolerance));
+
     public static BitmapSource Render(DesktopFrame frame, PixelRect selection, IEnumerable<ScreenshotAnnotation> annotations)
     {
         var crop = ScreenCaptureService.Crop(frame, selection);

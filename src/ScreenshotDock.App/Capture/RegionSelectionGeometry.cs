@@ -2,7 +2,7 @@ using ScreenshotDock.Core.Models;
 
 namespace ScreenshotDock.App.Capture;
 
-internal static class MosaicSelectionGeometry
+internal static class RegionSelectionGeometry
 {
     public static IReadOnlyList<(PixelPoint Point, SelectionAction Action)> Handles(PixelRect bounds) =>
     [

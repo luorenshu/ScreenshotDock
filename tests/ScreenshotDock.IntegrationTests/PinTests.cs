@@ -86,7 +86,7 @@ internal static partial class Program
             await capture.WaitAsync(TimeSpan.FromSeconds(5));
             await Task.Delay(40);
             var pinned = _application.Windows.OfType<PinnedImageWindow>().Single(w => !existingPins.Contains(w));
-            pinned.Activate();
+            ActivatePinFixture(pinned);
             await Task.Delay(30);
             return pinned;
         }
@@ -125,6 +125,7 @@ internal static partial class Program
             repository.Load(new(), DateTimeOffset.UtcNow);
             Check(repository.Items.Count == 2, "Both annotated pins are also retained as ordinary cached screenshots");
 
+            ActivatePinFixture(first);
             first.RaiseEvent(new MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
                 { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
             await Task.Delay(30);

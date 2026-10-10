@@ -282,7 +282,7 @@ public sealed class AppController : IDisposable
             finishing = true;
             editor.CommitText();
             if (editor.IsDrawing) editor.EndStroke();
-            editor.EndMosaicMove();
+            editor.EndRegionEdit();
             editor.SetBusy(true);
             try
             {
