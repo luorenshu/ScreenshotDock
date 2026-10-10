@@ -25,6 +25,16 @@ ScreenshotDock 将截图、标注、桌面贴图和临时图片收纳放在一�
 
 ![截图标注与透明文字输入](docs/images/editor.png)
 
+## 下载与运行
+
+最新版本：**v1.0.0**，适用于 **Windows 10 / 11 x64**。
+
+- [直接下载 EXE](https://github.com/luorenshu/ScreenshotDock/releases/download/v1.0.0/ScreenshotDock.exe)：下载后运行 `ScreenshotDock.exe`，无需安装或预装 .NET。
+- [下载完整 ZIP 包（推荐）](https://github.com/luorenshu/ScreenshotDock/releases/download/v1.0.0/ScreenshotDock-1.0.0-win-x64.zip)：包含 EXE、使用说明和许可证，解压后运行。
+- [查看更新与所有版本](https://github.com/luorenshu/ScreenshotDock/releases)：发行说明和下载文件均在 GitHub Releases 提供。
+
+单独下载 EXE 时，可一并获取 [许可证文件包](https://github.com/luorenshu/ScreenshotDock/releases/download/v1.0.0/ScreenshotDock-1.0.0-licenses.zip)。文件校验值见发行页的 `SHA256SUMS.txt`。
+
 ## 快速使用
 
 1. 启动后按 **F1**，单击自动识别的区域或拖动框选。
@@ -46,7 +56,7 @@ ScreenshotDock 将截图、标注、桌面贴图和临时图片收纳放在一�
 
 ## 从源码运行
 
-目标平台为 **Windows 10 / 11 x64**，使用 Git 与 PowerShell。当前仓库提供源码，可在 Windows 上运行和生成自包含程序。
+目标平台为 **Windows 10 / 11 x64**。开发与构建使用 Git 和 PowerShell。
 
 ```powershell
 git clone https://github.com/luorenshu/ScreenshotDock.git
