@@ -39,7 +39,9 @@ public partial class CaptureWindow : Window
         _monitors = DesktopEnvironment.Monitors;
         _ownsEditor = editor is null;
         _editor = editor ?? new(session);
+        _syncingStyle = true;
         InitializeComponent();
+        _syncingStyle = false;
         Cursor = CaptureCursors.Crosshair;
         AnnotationTextBox.Cursor = CaptureCursors.Text;
         _toolButtons = new()
@@ -131,6 +133,10 @@ public partial class CaptureWindow : Window
         if (_toolButtons is null) return; // Initial XAML selection events run before construction completes.
         foreach (var pair in _toolButtons) pair.Value.Background = pair.Key == _editor.Tool ? new SolidColorBrush(Color.FromRgb(213, 233, 255)) : Brushes.Transparent;
         foreach (var pair in _arrowStyleButtons) pair.Value.Background = pair.Key == _editor.ArrowStyle ? new SolidColorBrush(Color.FromRgb(213, 233, 255)) : Brushes.Transparent;
+        _syncingStyle = true;
+        var strokeWidth = _editor.Thickness.ToString(CultureInfo.InvariantCulture);
+        StrokeWidthBox.SelectedItem = StrokeWidthBox.Items.OfType<ComboBoxItem>().FirstOrDefault(item => item.Content as string == strokeWidth);
+        _syncingStyle = false;
         UndoButton.IsEnabled = _editor.Document.CanUndo;
         RedoButton.IsEnabled = _editor.Document.CanRedo;
         CaptureToolbar.IsEnabled = !_editor.IsBusy;

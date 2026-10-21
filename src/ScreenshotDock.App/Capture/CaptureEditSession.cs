@@ -12,16 +12,26 @@ public sealed class CaptureEditSession : IDisposable
     private PixelPoint _regionEditStart;
     private PixelRect _regionResizeBounds;
     private PixelRect _lastSelection;
+    private double _thickness = 5;
+    private double _arrowThickness = 8;
     public SelectionSession Selection { get; }
     public AnnotationDocument Document { get; } = new();
     public CaptureTool Tool { get; private set; }
     public uint ColorArgb { get; set; } = 0xFFFF4D4F;
-    public double Thickness { get; set; } = 5;
+    public double Thickness
+    {
+        get => Tool == CaptureTool.Arrow ? _arrowThickness : _thickness;
+        set
+        {
+            if (Tool == CaptureTool.Arrow) _arrowThickness = value;
+            else _thickness = value;
+        }
+    }
     public double FontSize { get; set; } = 20;
     public double MosaicSize { get; set; } = 16;
     public int? EditingTextIndex { get; private set; }
     public ScreenshotAnnotation? EditingText { get; private set; }
-    public ArrowStyle ArrowStyle { get; private set; }
+    public ArrowStyle ArrowStyle { get; private set; } = ArrowStyle.Tapered;
     public bool IsBusy { get; private set; }
     public bool IsDrawing => _draft is not null;
     public bool IsEditingRegion => _editingRegion is not null;
